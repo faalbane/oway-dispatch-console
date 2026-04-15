@@ -1,0 +1,36 @@
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply h-full;
+    background: theme(colors.surface.subtle);
+    color: theme(colors.ink.DEFAULT);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: theme(colors.line.strong);
+    border-radius: 5px;
+    border: 2px solid theme(colors.surface.subtle);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme(colors.ink.subtle);
+  }
+}
+
+.leaflet-container {
+  font-family: inherit;
+}

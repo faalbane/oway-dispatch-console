@@ -1,0 +1,515 @@
+{
+  "2500 e carson st|carson|ca|90810": {
+    "key": "2500 e carson st|carson|ca|90810",
+    "lat": 33.8303,
+    "lng": -118.2351,
+    "source": "depot",
+    "query": "2500 E Carson St, Carson, CA 90810"
+  },
+  "1200 e olympic blvd|los angeles|ca|90021": {
+    "key": "1200 e olympic blvd|los angeles|ca|90021",
+    "lat": 34.0314413,
+    "lng": -118.2434694,
+    "source": "nominatim",
+    "query": "1200 E Olympic Blvd, Los Angeles, CA 90021, USA"
+  },
+  "4501 w jefferson blvd|los angeles|ca|90016": {
+    "key": "4501 w jefferson blvd|los angeles|ca|90016",
+    "lat": 34.025626,
+    "lng": -118.345127,
+    "source": "nominatim",
+    "query": "4501 W Jefferson Blvd, Los Angeles, CA 90016, USA"
+  },
+  "2200 s alameda st|compton|ca|90220": {
+    "key": "2200 s alameda st|compton|ca|90220",
+    "lat": 33.8889581,
+    "lng": -118.2193805,
+    "source": "nominatim",
+    "query": "2200 S Alameda St, Compton, CA 90220, USA"
+  },
+  "11925 w pico blvd|los angeles|ca|90064": {
+    "key": "11925 w pico blvd|los angeles|ca|90064",
+    "lat": 34.0302348,
+    "lng": -118.4486656,
+    "source": "nominatim",
+    "query": "11925 W Pico Blvd, Los Angeles, CA 90064, USA"
+  },
+  "301 e ocean blvd|long beach|ca|90802": {
+    "key": "301 e ocean blvd|long beach|ca|90802",
+    "lat": 33.766988,
+    "lng": -118.189217,
+    "source": "nominatim",
+    "query": "301 E Ocean Blvd, Long Beach, CA 90802, USA"
+  },
+  "1801 e katella ave|anaheim|ca|92805": {
+    "key": "1801 e katella ave|anaheim|ca|92805",
+    "lat": 33.8043491,
+    "lng": -117.8903478,
+    "source": "nominatim",
+    "query": "1801 E Katella Ave, Anaheim, CA 92805, USA"
+  },
+  "800 traction ave|los angeles|ca|90013": {
+    "key": "800 traction ave|los angeles|ca|90013",
+    "lat": 34.0450071,
+    "lng": -118.2360477,
+    "source": "nominatim",
+    "query": "800 Traction Ave, Los Angeles, CA 90013, USA"
+  },
+  "14425 sherman way|van nuys|ca|91405": {
+    "key": "14425 sherman way|van nuys|ca|91405",
+    "lat": 34.2014437,
+    "lng": -118.447099,
+    "source": "nominatim",
+    "query": "14425 Sherman Way, Van Nuys, CA 91405, USA"
+  },
+  "3600 inland empire blvd|ontario|ca|91764": {
+    "key": "3600 inland empire blvd|ontario|ca|91764",
+    "lat": 34.071322,
+    "lng": -117.573327,
+    "source": "nominatim",
+    "query": "3600 Inland Empire Blvd, Ontario, CA 91764, USA"
+  },
+  "225 s lake ave|pasadena|ca|91101": {
+    "key": "225 s lake ave|pasadena|ca|91101",
+    "lat": 34.1418847,
+    "lng": -118.1335197,
+    "source": "nominatim",
+    "query": "225 S Lake Ave, Pasadena, CA 91101, USA"
+  },
+  "4900 s santa fe ave|vernon|ca|90058": {
+    "key": "4900 s santa fe ave|vernon|ca|90058",
+    "lat": 33.998758,
+    "lng": -118.2303155,
+    "source": "nominatim",
+    "query": "4900 S Santa Fe Ave, Vernon, CA 90058, USA"
+  },
+  "2100 w 190th st|torrance|ca|90504": {
+    "key": "2100 w 190th st|torrance|ca|90504",
+    "lat": 33.858277,
+    "lng": -118.316188,
+    "source": "nominatim",
+    "query": "2100 W 190th St, Torrance, CA 90504, USA"
+  },
+  "6000 avion dr|los angeles|ca|90045": {
+    "key": "6000 avion dr|los angeles|ca|90045",
+    "lat": 33.9466704,
+    "lng": -118.3901124,
+    "source": "nominatim",
+    "query": "6000 Avion Dr, Los Angeles, CA 90045, USA"
+  },
+  "110 e 9th st|los angeles|ca|90015": {
+    "key": "110 e 9th st|los angeles|ca|90015",
+    "lat": 34.04099,
+    "lng": -118.2558,
+    "source": "nominatim",
+    "query": "110 E 9th St, Los Angeles, CA 90015, USA"
+  },
+  "200 nagoya way|san pedro|ca|90731": {
+    "key": "200 nagoya way|san pedro|ca|90731",
+    "lat": 33.7375,
+    "lng": -118.2628,
+    "source": "manual",
+    "query": "200 Nagoya Way, San Pedro, CA 90731, USA (Port of LA — manual coords; Nominatim missed)"
+  },
+  "500 n central ave|glendale|ca|91203": {
+    "key": "500 n central ave|glendale|ca|91203",
+    "lat": 34.1531963,
+    "lng": -118.2575559,
+    "source": "nominatim",
+    "query": "500 N Central Ave, Glendale, CA 91203, USA"
+  },
+  "1100 n avalon blvd|wilmington|ca|90744": {
+    "key": "1100 n avalon blvd|wilmington|ca|90744",
+    "lat": 33.784875,
+    "lng": -118.262714,
+    "source": "nominatim",
+    "query": "1100 N Avalon Blvd, Wilmington, CA 90744, USA"
+  },
+  "3200 e foothill blvd|pomona|ca|91767": {
+    "key": "3200 e foothill blvd|pomona|ca|91767",
+    "lat": 34.1077747,
+    "lng": -117.7486013,
+    "source": "nominatim",
+    "query": "3200 E Foothill Blvd, Pomona, CA 91767, USA"
+  },
+  "9850 flair dr|el monte|ca|91731": {
+    "key": "9850 flair dr|el monte|ca|91731",
+    "lat": 34.0718485,
+    "lng": -118.0543089,
+    "source": "nominatim",
+    "query": "9850 Flair Dr, El Monte, CA 91731, USA"
+  },
+  "200 santa monica pier|santa monica|ca|90401": {
+    "key": "200 santa monica pier|santa monica|ca|90401",
+    "lat": 34.0108279,
+    "lng": -118.4956397,
+    "source": "nominatim",
+    "query": "200 Santa Monica Pier, Santa Monica, CA 90401, USA"
+  },
+  "5500 e washington blvd|commerce|ca|90040": {
+    "key": "5500 e washington blvd|commerce|ca|90040",
+    "lat": 34.000672,
+    "lng": -118.161102,
+    "source": "nominatim",
+    "query": "5500 E Washington Blvd, Commerce, CA 90040, USA"
+  },
+  "3000 w alameda ave|burbank|ca|91523": {
+    "key": "3000 w alameda ave|burbank|ca|91523",
+    "lat": 34.156365,
+    "lng": -118.333355,
+    "source": "nominatim",
+    "query": "3000 W Alameda Ave, Burbank, CA 91523, USA"
+  },
+  "9570 wilshire blvd|beverly hills|ca|90212": {
+    "key": "9570 wilshire blvd|beverly hills|ca|90212",
+    "lat": 34.0666868,
+    "lng": -118.402712,
+    "source": "nominatim",
+    "query": "9570 Wilshire Blvd, Beverly Hills, CA 90212, USA"
+  },
+  "15000 valley blvd|fontana|ca|92335": {
+    "key": "15000 valley blvd|fontana|ca|92335",
+    "lat": 34.0702387,
+    "lng": -117.4732531,
+    "source": "nominatim",
+    "query": "15000 Valley Blvd, Fontana, CA 92335, USA"
+  },
+  "9899 jefferson blvd|culver city|ca|90232": {
+    "key": "9899 jefferson blvd|culver city|ca|90232",
+    "lat": 34.0139871,
+    "lng": -118.38869,
+    "source": "nominatim",
+    "query": "9899 Jefferson Blvd, Culver City, CA 90232, USA"
+  },
+  "8408 rochester ave|rancho cucamonga|ca|91730": {
+    "key": "8408 rochester ave|rancho cucamonga|ca|91730",
+    "lat": 34.100816,
+    "lng": -117.5458404,
+    "source": "nominatim",
+    "query": "8408 Rochester Ave, Rancho Cucamonga, CA 91730, USA"
+  },
+  "11500 brookshire ave|downey|ca|90241": {
+    "key": "11500 brookshire ave|downey|ca|90241",
+    "lat": 33.9352163,
+    "lng": -118.1305933,
+    "source": "nominatim",
+    "query": "11500 Brookshire Ave, Downey, CA 90241, USA"
+  },
+  "20400 s main st|carson|ca|90745": {
+    "key": "20400 s main st|carson|ca|90745",
+    "lat": 33.8451675,
+    "lng": -118.2790812,
+    "source": "nominatim",
+    "query": "20400 S Main St, Carson, CA 90745, USA"
+  },
+  "1000 n azusa ave|azusa|ca|91702": {
+    "key": "1000 n azusa ave|azusa|ca|91702",
+    "lat": 34.139146,
+    "lng": -117.907368,
+    "source": "nominatim",
+    "query": "1000 N Azusa Ave, Azusa, CA 91702, USA"
+  },
+  "1526 aerojet way|irwindale|ca|91706": {
+    "key": "1526 aerojet way|irwindale|ca|91706",
+    "lat": 34.1066,
+    "lng": -117.9669,
+    "source": "manual",
+    "query": "1526 Aerojet Way, Irwindale, CA 91706, USA (manual coords; Nominatim missed)"
+  },
+  "405 n pacific coast hwy|redondo beach|ca|90277": {
+    "key": "405 n pacific coast hwy|redondo beach|ca|90277",
+    "lat": 33.8474327,
+    "lng": -118.389528,
+    "source": "nominatim",
+    "query": "405 N Pacific Coast Hwy, Redondo Beach, CA 90277, USA"
+  },
+  "1801 e airport dr|ontario|ca|91761": {
+    "key": "1801 e airport dr|ontario|ca|91761",
+    "lat": 34.0620221,
+    "lng": -117.614747,
+    "source": "nominatim",
+    "query": "1801 E Airport Dr, Ontario, CA 91761, USA"
+  },
+  "15607 whittier blvd|whittier|ca|90603": {
+    "key": "15607 whittier blvd|whittier|ca|90603",
+    "lat": 33.9451168,
+    "lng": -117.9957705,
+    "source": "nominatim",
+    "query": "15607 Whittier Blvd, Whittier, CA 90603, USA"
+  },
+  "18542 beach blvd|huntington beach|ca|92648": {
+    "key": "18542 beach blvd|huntington beach|ca|92648",
+    "lat": 33.6926488,
+    "lng": -117.9890522,
+    "source": "nominatim",
+    "query": "18542 Beach Blvd, Huntington Beach, CA 92648, USA"
+  },
+  "900 university ave|riverside|ca|92521": {
+    "key": "900 university ave|riverside|ca|92521",
+    "lat": 33.9745786,
+    "lng": -117.3245406,
+    "source": "nominatim",
+    "query": "900 University Ave, Riverside, CA 92521, USA"
+  },
+  "100 n citrus ave|covina|ca|91723": {
+    "key": "100 n citrus ave|covina|ca|91723",
+    "lat": 34.086377,
+    "lng": -117.890033,
+    "source": "nominatim",
+    "query": "100 N Citrus Ave, Covina, CA 91723, USA"
+  },
+  "300 e manchester blvd|inglewood|ca|90301": {
+    "key": "300 e manchester blvd|inglewood|ca|90301",
+    "lat": 33.961705,
+    "lng": -118.351713,
+    "source": "nominatim",
+    "query": "300 E Manchester Blvd, Inglewood, CA 90301, USA"
+  },
+  "4000 grand ave|chino hills|ca|91709": {
+    "key": "4000 grand ave|chino hills|ca|91709",
+    "lat": 34.001373,
+    "lng": -117.7268992,
+    "source": "nominatim",
+    "query": "4000 Grand Ave, Chino Hills, CA 91709, USA"
+  },
+  "8950 sunset blvd|west hollywood|ca|90069": {
+    "key": "8950 sunset blvd|west hollywood|ca|90069",
+    "lat": 34.0905615,
+    "lng": -118.3860436,
+    "source": "nominatim",
+    "query": "8950 Sunset Blvd, West Hollywood, CA 90069, USA"
+  },
+  "2000 e el segundo blvd|el segundo|ca|90245": {
+    "key": "2000 e el segundo blvd|el segundo|ca|90245",
+    "lat": 33.9139692,
+    "lng": -118.3883211,
+    "source": "nominatim",
+    "query": "2000 E El Segundo Blvd, El Segundo, CA 90245, USA"
+  },
+  "1001 e palmdale blvd|palmdale|ca|93550": {
+    "key": "1001 e palmdale blvd|palmdale|ca|93550",
+    "lat": 34.579642,
+    "lng": -118.111712,
+    "source": "nominatim",
+    "query": "1001 E Palmdale Blvd, Palmdale, CA 93550, USA"
+  },
+  "2500 cherry ave|signal hill|ca|90755": {
+    "key": "2500 cherry ave|signal hill|ca|90755",
+    "lat": 33.802698,
+    "lng": -118.167502,
+    "source": "nominatim",
+    "query": "2500 Cherry Ave, Signal Hill, CA 90755, USA"
+  },
+  "5100 district blvd|bakersfield|ca|93313": {
+    "key": "5100 district blvd|bakersfield|ca|93313",
+    "lat": 35.3131198,
+    "lng": -119.0607618,
+    "source": "nominatim",
+    "query": "5100 District Blvd, Bakersfield, CA 93313, USA"
+  },
+  "2300 via campo|montebello|ca|90640": {
+    "key": "2300 via campo|montebello|ca|90640",
+    "lat": 34.0328831,
+    "lng": -118.1220973,
+    "source": "nominatim",
+    "query": "2300 Via Campo, Montebello, CA 90640, USA"
+  },
+  "901 e santa ana blvd|santa ana|ca|92701": {
+    "key": "901 e santa ana blvd|santa ana|ca|92701",
+    "lat": 33.75199,
+    "lng": -117.859005,
+    "source": "nominatim",
+    "query": "901 E Santa Ana Blvd, Santa Ana, CA 92701, USA"
+  },
+  "4600 rosemead blvd|pico rivera|ca|90660": {
+    "key": "4600 rosemead blvd|pico rivera|ca|90660",
+    "lat": 33.9878874,
+    "lng": -118.0935932,
+    "source": "nominatim",
+    "query": "4600 Rosemead Blvd, Pico Rivera, CA 90660, USA"
+  },
+  "200 w bonita ave|san dimas|ca|91773": {
+    "key": "200 w bonita ave|san dimas|ca|91773",
+    "lat": 34.106598,
+    "lng": -117.810327,
+    "source": "nominatim",
+    "query": "200 W Bonita Ave, San Dimas, CA 91773, USA"
+  },
+  "4800 w el segundo blvd|hawthorne|ca|90250": {
+    "key": "4800 w el segundo blvd|hawthorne|ca|90250",
+    "lat": 33.9164143,
+    "lng": -118.3496892,
+    "source": "nominatim",
+    "query": "4800 W El Segundo Blvd, Hawthorne, CA 90250, USA"
+  },
+  "15 technology dr|irvine|ca|92618": {
+    "key": "15 technology dr|irvine|ca|92618",
+    "lat": 33.6492801,
+    "lng": -117.7365344,
+    "source": "nominatim",
+    "query": "15 Technology Dr, Irvine, CA 92618, USA"
+  },
+  "12000 firestone blvd|norwalk|ca|90650": {
+    "key": "12000 firestone blvd|norwalk|ca|90650",
+    "lat": 33.908474,
+    "lng": -118.074192,
+    "source": "nominatim",
+    "query": "12000 Firestone Blvd, Norwalk, CA 90650, USA"
+  },
+  "1100 manhattan ave|manhattan beach|ca|90266": {
+    "key": "1100 manhattan ave|manhattan beach|ca|90266",
+    "lat": 33.8843284,
+    "lng": -118.4102459,
+    "source": "nominatim",
+    "query": "1100 Manhattan Ave, Manhattan Beach, CA 90266, USA"
+  },
+  "1200 e valley blvd|colton|ca|92324": {
+    "key": "1200 e valley blvd|colton|ca|92324",
+    "lat": 34.0663088,
+    "lng": -117.3204814,
+    "source": "nominatim",
+    "query": "1200 E Valley Blvd, Colton, CA 92324, USA"
+  },
+  "3100 e thousand oaks blvd|thousand oaks|ca|91362": {
+    "key": "3100 e thousand oaks blvd|thousand oaks|ca|91362",
+    "lat": 34.1660722,
+    "lng": -118.8324464,
+    "source": "nominatim",
+    "query": "3100 E Thousand Oaks Blvd, Thousand Oaks, CA 91362, USA"
+  },
+  "1400 w artesia blvd|gardena|ca|90248": {
+    "key": "1400 w artesia blvd|gardena|ca|90248",
+    "lat": 33.872745,
+    "lng": -118.29927,
+    "source": "nominatim",
+    "query": "1400 W Artesia Blvd, Gardena, CA 90248, USA"
+  },
+  "2300 n oxnard blvd|oxnard|ca|93030": {
+    "key": "2300 n oxnard blvd|oxnard|ca|93030",
+    "lat": 34.233075,
+    "lng": -119.179295,
+    "source": "nominatim",
+    "query": "2300 N Oxnard Blvd, Oxnard, CA 93030, USA"
+  },
+  "10900 183rd st|cerritos|ca|90703": {
+    "key": "10900 183rd st|cerritos|ca|90703",
+    "lat": 33.8649154,
+    "lng": -118.1019263,
+    "source": "nominatim",
+    "query": "10900 183rd St, Cerritos, CA 90703, USA"
+  },
+  "5500 cochran st|simi valley|ca|93063": {
+    "key": "5500 cochran st|simi valley|ca|93063",
+    "lat": 34.2789165,
+    "lng": -118.6849803,
+    "source": "nominatim",
+    "query": "5500 Cochran St, Simi Valley, CA 93063, USA"
+  },
+  "|industry|ca|91744": {
+    "key": "|industry|ca|91744",
+    "lat": null,
+    "lng": null,
+    "source": "failed",
+    "query": "",
+    "reason": "empty address1"
+  },
+  "1200 e orangethorpe ave|fullerton|ca|92831": {
+    "key": "1200 e orangethorpe ave|fullerton|ca|92831",
+    "lat": 33.859481,
+    "lng": -117.905797,
+    "source": "nominatim",
+    "query": "1200 E Orangethorpe Ave, Fullerton, CA 92831, USA"
+  },
+  "1500 e amar rd|west covina|ca|91792": {
+    "key": "1500 e amar rd|west covina|ca|91792",
+    "lat": 34.030389,
+    "lng": -117.91311,
+    "source": "nominatim",
+    "query": "1500 E Amar Rd, West Covina, CA 91792, USA"
+  },
+  "21350 pacific coast hwy|malibu|ca|90265": {
+    "key": "21350 pacific coast hwy|malibu|ca|90265",
+    "lat": 34.0374207,
+    "lng": -118.6394135,
+    "source": "nominatim",
+    "query": "21350 Pacific Coast Hwy, Malibu, CA 90265, USA"
+  },
+  "100 main st|nowhere|ca|00000": {
+    "key": "100 main st|nowhere|ca|00000",
+    "lat": null,
+    "lng": null,
+    "source": "failed",
+    "query": "",
+    "reason": "invalid zip 00000"
+  },
+  "9200 sorensen ave|santa fe springs|ca|90670": {
+    "key": "9200 sorensen ave|santa fe springs|ca|90670",
+    "lat": 33.9588709,
+    "lng": -118.0623622,
+    "source": "nominatim",
+    "query": "9200 Sorensen Ave, Santa Fe Springs, CA 90670, USA"
+  },
+  "1200 bison ave|newport beach|ca|92660": {
+    "key": "1200 bison ave|newport beach|ca|92660",
+    "lat": 33.6380231,
+    "lng": -117.8642827,
+    "source": "nominatim",
+    "query": "1200 Bison Ave, Newport Beach, CA 92660, USA"
+  },
+  "7800 alondra blvd|paramount|ca|90723": {
+    "key": "7800 alondra blvd|paramount|ca|90723",
+    "lat": 33.889031,
+    "lng": -118.162581,
+    "source": "nominatim",
+    "query": "7800 Alondra Blvd, Paramount, CA 90723, USA"
+  },
+  "740 e ventura blvd|camarillo|ca|93010": {
+    "key": "740 e ventura blvd|camarillo|ca|93010",
+    "lat": 34.2172578,
+    "lng": -119.0494847,
+    "source": "nominatim",
+    "query": "740 E Ventura Blvd, Camarillo, CA 93010, USA"
+  },
+  "1601 e olympic blvd|los angeles|ca|90021": {
+    "key": "1601 e olympic blvd|los angeles|ca|90021",
+    "lat": 34.03003,
+    "lng": -118.241658,
+    "source": "nominatim",
+    "query": "1601 E Olympic Blvd, Los Angeles, CA 90021, USA"
+  },
+  "235 w foothill blvd|claremont|ca|91711": {
+    "key": "235 w foothill blvd|claremont|ca|91711",
+    "lat": 34.1070017,
+    "lng": -117.7209152,
+    "source": "nominatim",
+    "query": "235 W Foothill Blvd, Claremont, CA 91711, USA"
+  },
+  "8200 telegraph rd|downey|ca|90240": {
+    "key": "8200 telegraph rd|downey|ca|90240",
+    "lat": 33.966927,
+    "lng": -118.115772,
+    "source": "nominatim",
+    "query": "8200 Telegraph Rd, Downey, CA 90240, USA"
+  },
+  "1500 anchors way dr|ventura|ca|93001": {
+    "key": "1500 anchors way dr|ventura|ca|93001",
+    "lat": 34.2505347,
+    "lng": -119.264358,
+    "source": "nominatim",
+    "query": "1500 Anchors Way Dr, Ventura, CA 93001, USA"
+  },
+  "100 s garfield ave|alhambra|ca|91801": {
+    "key": "100 s garfield ave|alhambra|ca|91801",
+    "lat": 34.0942699,
+    "lng": -118.1260771,
+    "source": "nominatim",
+    "query": "100 S Garfield Ave, Alhambra, CA 91801, USA"
+  },
+  "400 n e st|san bernardino|ca|92401": {
+    "key": "400 n e st|san bernardino|ca|92401",
+    "lat": 34.106564,
+    "lng": -117.294256,
+    "source": "nominatim",
+    "query": "400 N E St, San Bernardino, CA 92401, USA"
+  }
+}

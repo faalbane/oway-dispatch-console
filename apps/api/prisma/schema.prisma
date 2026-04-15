@@ -1,0 +1,77 @@
+// Prisma schema for Oway Dispatch Console.
+//
+// Notes on modeling:
+// - Address is embedded as JSON on Shipment, not normalized. Addresses on freight
+//   orders are point-in-time copies; normalizing creates false reuse and breaks
+//   if a contact moves.
+// - dataIssues is JSON on Shipment so validation findings travel with the row.
+// - Geocode is a separate cache table keyed by a normalized address string so
+//   we never re-geocode the same address twice.
+// - SQLite for zero-friction local runs. Provider line is the only thing to
+//   change for Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Shipment {
+  id            String   @id
+  origin        String   // JSON-serialized Address
+  destination   String   // JSON-serialized Address
+  palletCount   Int
+  weightLbs     Float
+  description   String
+  status        String   // ShipmentStatus enum (validated in app layer)
+  accessorials  String   // JSON-serialized string[]
+  vehicleId     String?
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  dataIssues    String   @default("[]") // JSON-serialized DataIssue[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([vehicleId])
+}
+
+model Vehicle {
+  id           String     @id
+  type         String     // dry_van | box_truck
+  maxPallets   Int
+  maxWeightLbs Float
+  shipments    Shipment[]
+  routes       Route[]
+}
+
+model Route {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  computedAt  DateTime @default(now())
+  payload     String   // JSON-serialized Route (stops, score, unroutable)
+
+  @@index([vehicleId, computedAt])
+}
+
+model Geocode {
+  key    String @id   // lowercased "address1|city|state|zip"
+  lat    Float?
+  lng    Float?
+  source String       // nominatim | manual | depot | failed
+  reason String?
+}
+
+model Depot {
+  id        String @id @default("depot")
+  name      String
+  address1  String
+  city      String
+  state     String
+  zipCode   String
+  latitude  Float
+  longitude Float
+}
