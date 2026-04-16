@@ -77,6 +77,11 @@ export function ShipmentTable({ onSelectShipment }: Props) {
               )}
             >
               {f.label}
+              {f.value === 'ALL' && (
+                <span className={cn('ml-1.5 font-mono', statusFilter === 'ALL' ? 'text-white/70' : 'text-ink-subtle')}>
+                  ({selectedShipmentIds.size > 0 ? `${selectedShipmentIds.size} sel` : shipments.length})
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -90,11 +95,6 @@ export function ShipmentTable({ onSelectShipment }: Props) {
             className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-line bg-surface-subtle focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white"
           />
         </div>
-        <span className="text-[11px] text-ink-subtle whitespace-nowrap">
-          {selectedShipmentIds.size > 0
-            ? `${selectedShipmentIds.size} selected`
-            : `${shipments.length} ${shipments.length === 1 ? 'shipment' : 'shipments'}`}
-        </span>
       </div>
 
       {/* Table */}
@@ -117,11 +117,11 @@ export function ShipmentTable({ onSelectShipment }: Props) {
                 <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                   Status
                 </th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                  Origin → Destination
+                <th className="px-2 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted whitespace-nowrap">
+                  Route
                 </th>
-                <SortableHeader label="Pallets" field="palletCount" current={sort} order={order} onClick={toggleSort} align="right" />
-                <SortableHeader label="Weight" field="weightLbs" current={sort} order={order} onClick={toggleSort} align="right" />
+                <SortableHeader label="Plt" field="palletCount" current={sort} order={order} onClick={toggleSort} align="right" />
+                <SortableHeader label="Lbs" field="weightLbs" current={sort} order={order} onClick={toggleSort} align="right" />
                 <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                   Flags
                 </th>
