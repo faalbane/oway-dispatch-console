@@ -7,6 +7,7 @@ import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, Pill } from '@/components/ui/badge';
+import { LinkifyShipments } from './linkify-shipments';
 import { fmtAddressFull, fmtTime, fmtTimeRange } from '@/lib/format';
 import { CapacityBar } from '@/components/ui/progress';
 import { useState } from 'react';
@@ -266,7 +267,7 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
             </div>
             {route.unroutableShipmentIds.length > 0 && (
               <div className="text-amber-700">
-                Skipped (ungeocodable): {route.unroutableShipmentIds.join(', ')}
+                Skipped (ungeocodable): <LinkifyShipments text={route.unroutableShipmentIds.join(', ')} />
               </div>
             )}
             <RationalePanel rationale={route.rationale} />
@@ -311,7 +312,7 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-xs font-medium">
                       {s.kind === 'pickup' ? 'Pickup' : 'Delivery'}{' '}
-                      <span className="font-mono text-ink-subtle">{s.shipmentId}</span>
+                      <LinkifyShipments text={s.shipmentId} />
                     </span>
                     <span className="text-[11px] font-mono tabular-nums text-ink-subtle">{fmtTime(s.etaArrival)}</span>
                   </div>
@@ -503,7 +504,7 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
               {shipment.dataIssues.map((i, idx) => (
                 <li key={idx} className="text-xs flex items-start gap-2">
                   <Pill tone={i.severity === 'blocking' ? 'danger' : 'warn'}>{i.severity}</Pill>
-                  <span>{i.message}</span>
+                  <span><LinkifyShipments text={i.message} /></span>
                 </li>
               ))}
             </ul>

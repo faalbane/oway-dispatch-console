@@ -7,6 +7,7 @@ import { Pill } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDispatch } from '@/state/dispatch-store';
+import { LinkifyShipments } from './linkify-shipments';
 
 const ICONS = {
   MISSING_ADDRESS: AlertCircle,
@@ -75,7 +76,7 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
                           </Pill>
                           <Pill tone="neutral">{issue.code.replace(/_/g, ' ').toLowerCase()}</Pill>
                         </div>
-                        <div className="text-xs text-ink-muted mt-0.5">{issue.message}</div>
+                        <div className="text-xs text-ink-muted mt-0.5"><LinkifyShipments text={issue.message} /></div>
                         {issue.field && (
                           <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
                             field: {issue.field}
