@@ -45,7 +45,7 @@ export default async function geocodeRoutes(app: FastifyInstance) {
    */
   app.get('/geocodes/autocomplete', async (req) => {
     const { q } = z.object({ q: z.string().min(2) }).parse(req.query);
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyDsWaGu1YfHUasNGty0h4j7w2ZM2mzXkDQ';
     if (!apiKey) return { suggestions: [] };
     try {
       const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
@@ -101,7 +101,7 @@ export default async function geocodeRoutes(app: FastifyInstance) {
    */
   app.get('/geocodes/place-details', async (req) => {
     const { placeId } = z.object({ placeId: z.string().min(1) }).parse(req.query);
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyDsWaGu1YfHUasNGty0h4j7w2ZM2mzXkDQ';
     if (!apiKey) return { found: false };
     try {
       const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {

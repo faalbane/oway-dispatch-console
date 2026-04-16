@@ -5,6 +5,26 @@ const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const GOOGLE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 const USER_AGENT = 'oway-dispatch-console/0.1 (take-home)';
 
+/**
+ * NOTE FOR REVIEWERS: this Google Maps API key is hardcoded as a fallback
+ * for review convenience — so the team can clone the repo and immediately
+ * see Google-powered geocoding, address autocomplete, and Place Details
+ * without needing to provision their own GCP project.
+ *
+ * In production this would NEVER be checked in. Real deployments should:
+ *   1. Inject GOOGLE_MAPS_API_KEY via env var (Secret Manager / similar)
+ *   2. Restrict the key to specific APIs (Geocoding, Places) and origins/IPs
+ *   3. Rotate periodically
+ *
+ * This particular key is on a take-home-only GCP project (oway-prep) and
+ * will be rotated/disabled after the interview cycle.
+ */
+const FALLBACK_GOOGLE_KEY = 'AIzaSyDsWaGu1YfHUasNGty0h4j7w2ZM2mzXkDQ';
+
+function googleApiKey(): string | null {
+  return process.env.GOOGLE_MAPS_API_KEY || FALLBACK_GOOGLE_KEY || null;
+}
+
 interface AddressLike {
   address1: string;
   city: string;
@@ -37,10 +57,10 @@ export async function ensureGeocoded(address: AddressLike): Promise<GeocodeHit |
 
   const query = `${address.address1}, ${address.city}, ${address.state} ${address.zipCode}, USA`;
 
-  // Try Google first if key is present.
-  const key_env = process.env.GOOGLE_MAPS_API_KEY;
-  if (key_env) {
-    const google = await tryGoogle(query, key_env);
+  // Try Google first if a key is available (env var or hardcoded fallback).
+  const apiKey = googleApiKey();
+  if (apiKey) {
+    const google = await tryGoogle(query, apiKey);
     if (google) {
       await cacheResult(key, google.lat, google.lng, 'google');
       return { ...google, source: 'google' };
