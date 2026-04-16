@@ -109,6 +109,7 @@ export const api = {
   placeDetails: (placeId: string) =>
     request<{
       found: boolean;
+      name?: string;
       address1?: string;
       city?: string;
       state?: string;

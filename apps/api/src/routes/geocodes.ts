@@ -95,12 +95,13 @@ export default async function geocodeRoutes(app: FastifyInstance) {
       const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
         headers: {
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'addressComponents,location,formattedAddress',
+          'X-Goog-FieldMask': 'displayName,addressComponents,location,formattedAddress',
         },
         signal: AbortSignal.timeout(5_000),
       });
       if (!res.ok) return { found: false };
       const json = (await res.json()) as {
+        displayName?: { text: string };
         formattedAddress?: string;
         location?: { latitude: number; longitude: number };
         addressComponents?: Array<{ longText: string; shortText: string; types: string[] }>;
@@ -114,6 +115,7 @@ export default async function geocodeRoutes(app: FastifyInstance) {
       const route = get('route');
       return {
         found: true,
+        name: json.displayName?.text,
         address1: [streetNumber, route].filter(Boolean).join(' '),
         city: get('locality') || get('sublocality') || get('postal_town'),
         state: get('administrative_area_level_1', true),

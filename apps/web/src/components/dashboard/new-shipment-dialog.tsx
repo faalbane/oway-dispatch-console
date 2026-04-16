@@ -243,19 +243,36 @@ function AddressFieldset({
   return (
     <fieldset className="space-y-2 border border-line rounded-md p-3">
       <legend className="px-1 text-[11px] uppercase tracking-wider font-semibold text-ink-muted">{label}</legend>
-      <TextField label="Name" value={value.name} onChange={(v) => set('name', v)} />
-      <AddressAutocomplete
+      <PlacesAutocomplete
+        label="Name"
+        value={value.name}
+        onChange={(v) => set('name', v)}
+        onSelect={(details) => {
+          onChange({
+            ...value,
+            name: details.name ?? value.name,
+            address1: details.address1 || value.address1,
+            city: details.city || value.city,
+            state: details.state || value.state,
+            zipCode: details.zipCode || value.zipCode,
+          });
+        }}
+        renderSuggestion={(s) => ({ main: s.mainText, secondary: s.secondaryText })}
+      />
+      <PlacesAutocomplete
+        label="Address"
         value={value.address1}
         onChange={(v) => set('address1', v)}
         onSelect={(details) => {
           onChange({
             ...value,
-            address1: details.address1 ?? value.address1,
-            city: details.city ?? value.city,
-            state: details.state ?? value.state,
-            zipCode: details.zipCode ?? value.zipCode,
+            address1: details.address1 || value.address1,
+            city: details.city || value.city,
+            state: details.state || value.state,
+            zipCode: details.zipCode || value.zipCode,
           });
         }}
+        renderSuggestion={(s) => ({ main: s.mainText, secondary: s.secondaryText })}
       />
       <div className="grid grid-cols-3 gap-2">
         <TextField label="City" value={value.city} onChange={(v) => set('city', v)} />
@@ -318,14 +335,18 @@ function VerifyIndicator({ state }: { state: VerifyState }) {
   );
 }
 
-function AddressAutocomplete({
+function PlacesAutocomplete({
+  label,
   value,
   onChange,
   onSelect,
+  renderSuggestion,
 }: {
+  label: string;
   value: string;
   onChange: (v: string) => void;
-  onSelect: (details: { address1?: string; city?: string; state?: string; zipCode?: string }) => void;
+  onSelect: (details: { name?: string; address1?: string; city?: string; state?: string; zipCode?: string }) => void;
+  renderSuggestion: (s: { placeId: string; text: string; mainText: string; secondaryText: string }) => { main: string; secondary: string };
 }) {
   const [suggestions, setSuggestions] = useState<Array<{ placeId: string; text: string; mainText: string; secondaryText: string }>>([]);
   const [open, setOpen] = useState(false);
@@ -360,7 +381,7 @@ function AddressAutocomplete({
 
   return (
     <label className="block relative">
-      <span className="block text-[10px] uppercase tracking-wider font-semibold text-ink-subtle mb-0.5">Address</span>
+      <span className="block text-[10px] uppercase tracking-wider font-semibold text-ink-subtle mb-0.5">{label}</span>
       <input
         type="text"
         value={value}
@@ -402,8 +423,8 @@ function AddressAutocomplete({
                 activeIndex === i ? 'bg-indigo-50' : 'hover:bg-surface-subtle'
               }`}
             >
-              <div className="text-xs font-medium text-ink truncate">{s.mainText}</div>
-              <div className="text-[11px] text-ink-subtle truncate">{s.secondaryText}</div>
+              <div className="text-xs font-medium text-ink truncate">{renderSuggestion(s).main}</div>
+              <div className="text-[11px] text-ink-subtle truncate">{renderSuggestion(s).secondary}</div>
             </button>
           ))}
         </div>
