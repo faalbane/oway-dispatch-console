@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -44,6 +44,7 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
   const [description, setDescription] = useState(initial.description);
   const [accessorials, setAccessorials] = useState<Accessorial[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [autoAssignTo, setAutoAssignTo] = useState<string | null>(null);
 
   const reset = () => {
     const next = defaultForm();
@@ -53,22 +54,30 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
     setWeightLbs(next.weightLbs);
     setDescription(next.description);
     setAccessorials([]);
+    setAutoAssignTo(null);
     setError(null);
   };
 
   const create = useMutation({
-    mutationFn: () =>
-      api.createShipment({
+    mutationFn: async () => {
+      const created = await api.createShipment({
         origin,
         destination,
         palletCount,
         weightLbs,
         description,
         accessorials,
-      }),
+      });
+      if (autoAssignTo) {
+        await api.assign({ vehicleId: autoAssignTo, shipmentIds: [created.id] });
+      }
+      return created;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['data-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
       onOpenChange(false);
       reset();
     },
@@ -151,6 +160,14 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
             </div>
           </div>
 
+          <EligibleVehicles
+            palletCount={palletCount}
+            weightLbs={weightLbs}
+            accessorials={accessorials}
+            selected={autoAssignTo}
+            onSelect={setAutoAssignTo}
+          />
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 whitespace-pre-line">{error}</div>
           )}
@@ -162,7 +179,7 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
           </Button>
           <Button variant="primary" onClick={() => create.mutate()} disabled={create.isPending}>
             {create.isPending && <Loader2 size={12} className="animate-spin" />}
-            Create
+            {autoAssignTo ? `Create & assign to ${autoAssignTo}` : 'Create'}
           </Button>
         </div>
       </DialogContent>
@@ -319,6 +336,123 @@ function VerifyIndicator({ state }: { state: VerifyState }) {
     <div className="text-[10px] text-amber-800 flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded px-2 py-1">
       <AlertCircle size={11} className="shrink-0" />
       <span>Address not found. You can still save — routes will flag it as ungeocodable.</span>
+    </div>
+  );
+}
+
+/**
+ * Live eligibility checker. Pulls the current fleet, computes which vehicles
+ * have room (pallets + weight) for the proposed shipment, and which have the
+ * accessorial capabilities the shipment needs. User can pick one to auto-assign
+ * on create.
+ */
+function EligibleVehicles({
+  palletCount,
+  weightLbs,
+  accessorials,
+  selected,
+  onSelect,
+}: {
+  palletCount: number;
+  weightLbs: number;
+  accessorials: Accessorial[];
+  selected: string | null;
+  onSelect: (vehicleId: string | null) => void;
+}) {
+  const { data: vehicles } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.listVehicles(),
+    refetchInterval: 5_000,
+  });
+
+  if (!vehicles) return null;
+
+  const evaluations = vehicles.map((v) => {
+    const projP = v.loadPallets + palletCount;
+    const projW = v.loadWeightLbs + weightLbs;
+    const palletsOk = projP <= v.maxPallets;
+    const weightOk = projW <= v.maxWeightLbs;
+    const missingCaps = accessorials.filter((a) => !v.capabilities.includes(a));
+    return { v, projP, projW, palletsOk, weightOk, missingCaps, fits: palletsOk && weightOk };
+  });
+
+  const fitting = evaluations.filter((e) => e.fits);
+  const noneFit = fitting.length === 0;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <label className="block text-[11px] uppercase tracking-wider font-semibold text-ink-muted">
+          Auto-assign on create (optional)
+        </label>
+        {selected && (
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className="text-[10px] text-ink-subtle hover:text-ink-muted underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {noneFit ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="font-semibold mb-1">No trucks have capacity for this shipment.</div>
+          <div className="text-[11px]">
+            Adjust pallets ({palletCount}) or weight ({weightLbs.toLocaleString()} lbs), or wait for a delivery to free up capacity. The shipment can still be created and assigned later.
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {evaluations.map(({ v, projP, projW, palletsOk, weightOk, missingCaps, fits }) => {
+            const isSelected = selected === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => onSelect(isSelected ? null : v.id)}
+                disabled={!fits}
+                className={cn(
+                  'rounded-md border p-2.5 text-left text-xs transition-colors',
+                  isSelected ? 'border-indigo-400 bg-indigo-50/70 ring-1 ring-indigo-300' :
+                  fits ? 'border-line hover:border-line-strong' :
+                  'border-line/60 bg-surface-subtle opacity-60 cursor-not-allowed',
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-semibold">{v.id}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-ink-subtle">
+                      {v.type.replace('_', ' ')}
+                    </span>
+                  </div>
+                  {isSelected && <span className="text-[10px] font-semibold text-indigo-600">Selected</span>}
+                </div>
+                <div className="mt-1 space-y-0.5">
+                  <div className={cn('flex items-center gap-1', !palletsOk && 'text-red-600')}>
+                    {palletsOk ? <Check size={10} /> : <AlertCircle size={10} />}
+                    <span className="font-mono tabular-nums">
+                      {projP}/{v.maxPallets} pallets {!palletsOk && `(over by ${projP - v.maxPallets})`}
+                    </span>
+                  </div>
+                  <div className={cn('flex items-center gap-1', !weightOk && 'text-red-600')}>
+                    {weightOk ? <Check size={10} /> : <AlertCircle size={10} />}
+                    <span className="font-mono tabular-nums">
+                      {Math.round(projW / 1000)}k/{Math.round(v.maxWeightLbs / 1000)}k lbs {!weightOk && `(over by ${(projW - v.maxWeightLbs).toLocaleString()})`}
+                    </span>
+                  </div>
+                  {missingCaps.length > 0 && fits && (
+                    <div className="text-amber-700 text-[10px] flex items-center gap-1 mt-0.5">
+                      <AlertCircle size={10} />
+                      Missing: {missingCaps.join(', ')}
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
