@@ -529,7 +529,7 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
             .map((to) => (
               <Button
                 key={to}
-                variant={to === 'CANCELLED' ? 'danger' : 'primary'}
+                variant={to === 'CANCELLED' ? 'danger-outline' : 'primary'}
                 size="sm"
                 onClick={() => transitionMutation.mutate(to)}
                 disabled={transitionMutation.isPending}
