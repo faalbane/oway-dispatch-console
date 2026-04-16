@@ -102,10 +102,20 @@ export function ShipmentTable({ onSelectShipment }: Props) {
         {isLoading ? (
           <div className="p-8 text-center text-sm text-ink-subtle">Loading…</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col style={{ width: '36px' }} />     {/* checkbox */}
+              <col style={{ width: '70px' }} />     {/* ID */}
+              <col style={{ width: '94px' }} />     {/* Status */}
+              <col />                               {/* Route — flex */}
+              <col style={{ width: '52px' }} />     {/* Plt */}
+              <col style={{ width: '78px' }} />     {/* Lbs */}
+              <col style={{ width: '110px' }} />    {/* Flags */}
+              <col style={{ width: '60px' }} />     {/* Veh */}
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-surface-subtle border-b border-line">
               <tr>
-                <th className="w-10 px-3 py-2.5 text-left">
+                <th className="px-2 py-2.5 text-left">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -218,7 +228,7 @@ function ShipmentRow({
       )}
       onClick={onClick}
     >
-      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+      <td className="px-2 py-2.5" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selected}
@@ -228,10 +238,10 @@ function ShipmentRow({
           title={blocking ? 'Cannot assign — has blocking data issues' : isTerminal ? 'Terminal status' : ''}
         />
       </td>
-      <td className="px-3 py-2.5 font-mono text-xs">
+      <td className="px-2 py-2.5 font-mono text-xs">
         <span className={cn(isTerminal && 'line-through')}>{shipment.id}</span>
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-2 py-2.5">
         <StatusBadge status={shipment.status} />
       </td>
       <td className="px-2 py-2 max-w-0">
