@@ -122,11 +122,11 @@ export function ShipmentTable({ onSelectShipment }: Props) {
                 </th>
                 <SortableHeader label="Plt" field="palletCount" current={sort} order={order} onClick={toggleSort} align="right" />
                 <SortableHeader label="Lbs" field="weightLbs" current={sort} order={order} onClick={toggleSort} align="right" />
-                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                <th className="px-2 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted whitespace-nowrap">
                   Flags
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                  Vehicle
+                <th className="px-2 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted whitespace-nowrap">
+                  Veh
                 </th>
               </tr>
             </thead>
