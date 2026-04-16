@@ -63,7 +63,7 @@ export default async function geocodeRoutes(app: FastifyInstance) {
           locationBias: {
             circle: {
               center: { latitude: 34.0522, longitude: -118.2437 },
-              radius: 80000, // ~50 mi
+              radius: 50000, // 50 km — Google's max for locationBias
             },
           },
         }),
