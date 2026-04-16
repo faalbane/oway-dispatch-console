@@ -55,38 +55,42 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
               {all.map((issue, idx) => {
                 const Icon = ICONS[issue.code as keyof typeof ICONS] ?? AlertTriangle;
                 return (
-                  <li key={idx}>
+                  <li key={idx} className="px-5 py-3 flex items-start gap-3 hover:bg-surface-subtle transition-colors group">
+                    <Icon
+                      size={16}
+                      className={cn(
+                        'shrink-0 mt-0.5',
+                        issue.severity === 'blocking' ? 'text-red-600' : 'text-amber-600',
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => jumpTo(issue.shipmentId)}
+                          className="font-mono text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline underline-offset-2"
+                        >
+                          {issue.shipmentId}
+                        </button>
+                        <Pill tone={issue.severity === 'blocking' ? 'danger' : 'warn'}>
+                          {issue.severity}
+                        </Pill>
+                        <Pill tone="neutral">{issue.code.replace(/_/g, ' ').toLowerCase()}</Pill>
+                      </div>
+                      <div className="text-xs text-ink-muted mt-0.5"><LinkifyShipments text={issue.message} /></div>
+                      {issue.field && (
+                        <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
+                          field: {issue.field}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => jumpTo(issue.shipmentId)}
-                      className="w-full px-5 py-3 flex items-start gap-3 hover:bg-surface-subtle text-left transition-colors group"
+                      title={`Jump to ${issue.shipmentId}`}
+                      className="shrink-0 mt-1 p-1 rounded text-ink-subtle hover:bg-surface-muted hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Icon
-                        size={16}
-                        className={cn(
-                          'shrink-0 mt-0.5',
-                          issue.severity === 'blocking' ? 'text-red-600' : 'text-amber-600',
-                        )}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold">{issue.shipmentId}</span>
-                          <Pill tone={issue.severity === 'blocking' ? 'danger' : 'warn'}>
-                            {issue.severity}
-                          </Pill>
-                          <Pill tone="neutral">{issue.code.replace(/_/g, ' ').toLowerCase()}</Pill>
-                        </div>
-                        <div className="text-xs text-ink-muted mt-0.5"><LinkifyShipments text={issue.message} /></div>
-                        {issue.field && (
-                          <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
-                            field: {issue.field}
-                          </div>
-                        )}
-                      </div>
-                      <ArrowRight
-                        size={14}
-                        className="shrink-0 mt-1 text-ink-subtle opacity-0 group-hover:opacity-100 group-hover:text-indigo-600 transition-opacity"
-                      />
+                      <ArrowRight size={14} />
                     </button>
                   </li>
                 );
