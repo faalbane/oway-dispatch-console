@@ -175,13 +175,104 @@ export function generateRoute(
     };
   });
 
+  const rationale = buildRationale({
+    stops,
+    score,
+    windowPenalty,
+    hazBonus,
+    deliveryOnlyCount: deliveryOnly.length,
+    fullCount: full.length,
+  });
+
   return {
     vehicleId,
     computedAt: new Date().toISOString(),
     stops: routeStops,
     score,
     unroutableShipmentIds: [...new Set(unroutable)],
+    rationale,
   };
+}
+
+function buildRationale(input: {
+  stops: InternalStop[];
+  score: RouteScore;
+  windowPenalty: number;
+  hazBonus: number;
+  deliveryOnlyCount: number;
+  fullCount: number;
+}): { objective: string; formula: string; decisions: string[] } {
+  const { stops, score, windowPenalty, hazBonus, deliveryOnlyCount, fullCount } = input;
+
+  const objective =
+    'Minimize a weighted combination of drive distance and time-window violations, while clustering hazmat stops to amortize protocol overhead. Arriving after a dock closes matters more than a few extra miles — a phone call to a receiving customer costs more than fuel.';
+
+  const formula = `score = total_distance_miles + ${windowPenalty} × window_violation_minutes − ${hazBonus} × adjacent_hazmat_pairs`;
+
+  const decisions: string[] = [];
+
+  if (stops.length === 0) {
+    decisions.push('No routable stops — vehicle has no active shipments with valid coordinates.');
+    return { objective, formula, decisions };
+  }
+
+  // Tightest delivery deadline
+  const tightest = [...stops]
+    .filter((s) => s.kind === 'delivery')
+    .sort((a, b) => a.closeMin - b.closeMin)[0];
+  if (tightest) {
+    const h = Math.floor(tightest.closeMin / 60);
+    const m = tightest.closeMin % 60;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    decisions.push(
+      `Anchored the ordering around the tightest delivery window: ${tightest.shipmentId} must be delivered by ${h12}:${String(m).padStart(2, '0')} ${period}. Routes are sorted by close-time ascending so the most constrained stops are placed first.`,
+    );
+  }
+
+  // Pickup before delivery
+  const shipmentIds = new Set(stops.map((s) => s.shipmentId));
+  decisions.push(
+    `Precedence constraint enforced for all ${shipmentIds.size} shipment${shipmentIds.size === 1 ? '' : 's'}: pickup always precedes delivery in the stop sequence.`,
+  );
+
+  // PICKED_UP delivery-only handling
+  if (deliveryOnlyCount > 0) {
+    decisions.push(
+      `${deliveryOnlyCount} shipment${deliveryOnlyCount === 1 ? '' : 's'} already picked up — routed as delivery-only (pickup stop skipped).`,
+    );
+  }
+
+  // Distance / window tradeoff
+  if (score.windowViolations === 0) {
+    decisions.push(
+      `All ${stops.length} stops fit within their time windows. Total drive distance is ${score.totalDistanceMi} mi — no tradeoff needed here.`,
+    );
+  } else {
+    const penaltyCost = score.windowViolationMinutes * windowPenalty;
+    decisions.push(
+      `Accepted ${score.windowViolations} window violation${score.windowViolations === 1 ? '' : 's'} totalling ${score.windowViolationMinutes} minute${score.windowViolationMinutes === 1 ? '' : 's'} late. Penalty contribution: ${penaltyCost.toFixed(1)} points. Ops may want to review: either drop a shipment or accept the late arrival.`,
+    );
+  }
+
+  // Hazmat clustering
+  if (score.hazmatAdjacentPairs > 0) {
+    const bonus = score.hazmatAdjacentPairs * hazBonus;
+    decisions.push(
+      `${score.hazmatAdjacentPairs} adjacent hazmat stop pair${score.hazmatAdjacentPairs === 1 ? '' : 's'} — clustered to amortize protocol overhead (driver gears up once instead of twice). Score bonus: ${bonus.toFixed(1)} points.`,
+    );
+  } else if (stops.some((s) => s.isHazmat)) {
+    decisions.push(
+      'Hazmat stops present but not adjacent in the final ordering — distance savings outweighed the clustering bonus.',
+    );
+  }
+
+  // Algorithmic summary
+  decisions.push(
+    `Algorithm: greedy insertion (tightest deadline first) + constrained 2-opt improvement that preserves pickup-before-delivery ordering. Distance source: ${fullCount + deliveryOnlyCount > 2 ? 'OSRM real road distances (with haversine fallback)' : 'haversine'}.`,
+  );
+
+  return { objective, formula, decisions };
 }
 
 /* ============================================================================

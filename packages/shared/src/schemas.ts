@@ -181,6 +181,16 @@ export const RouteScoreSchema = z.object({
 });
 export type RouteScore = z.infer<typeof RouteScoreSchema>;
 
+export const RouteRationaleSchema = z.object({
+  /** One-paragraph statement of what's being optimized. */
+  objective: z.string(),
+  /** The weighted score formula with current weight values. */
+  formula: z.string(),
+  /** Human-readable bullets explaining key decisions in the ordering. */
+  decisions: z.array(z.string()),
+});
+export type RouteRationale = z.infer<typeof RouteRationaleSchema>;
+
 export const RouteSchema = z.object({
   vehicleId: z.string(),
   computedAt: z.string(),
@@ -188,6 +198,8 @@ export const RouteSchema = z.object({
   score: RouteScoreSchema,
   /** Shipments that couldn't be inserted feasibly (e.g. ungeocodable). */
   unroutableShipmentIds: z.array(z.string()),
+  /** How the algorithm chose this ordering — surfaced in UI for ops visibility. */
+  rationale: RouteRationaleSchema,
 });
 export type Route = z.infer<typeof RouteSchema>;
 

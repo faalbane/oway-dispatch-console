@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Compass, Info, Loader2, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Compass, Info, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
@@ -266,6 +266,7 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
                 Skipped (ungeocodable): {route.unroutableShipmentIds.join(', ')}
               </div>
             )}
+            <RationalePanel rationale={route.rationale} />
           </div>
         ) : (
           <div className="text-[11px] text-ink-subtle">
@@ -703,6 +704,46 @@ function DetailAddress({
         <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-amber-800 flex items-start gap-1.5">
           <Info size={12} className="shrink-0 mt-0.5" />
           <span className="leading-snug">{a.notes}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RationalePanel({ rationale }: { rationale: import('@oway/shared').RouteRationale }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="mt-2 pt-2 border-t border-line/60">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 transition-colors"
+      >
+        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <Sparkles size={11} />
+        Why this ordering?
+      </button>
+      {expanded && (
+        <div className="mt-2 space-y-2 text-[11px] text-ink-muted">
+          <div className="rounded-md bg-indigo-50/70 border border-indigo-200/70 p-2.5 text-indigo-900">
+            <div className="font-semibold text-[10px] uppercase tracking-wider mb-1">Objective</div>
+            <div className="leading-snug">{rationale.objective}</div>
+          </div>
+          <div className="rounded-md bg-surface-muted border border-line/70 p-2.5">
+            <div className="font-semibold text-[10px] uppercase tracking-wider mb-1 text-ink-muted">Formula</div>
+            <code className="text-[11px] font-mono text-ink">{rationale.formula}</code>
+          </div>
+          <div>
+            <div className="font-semibold text-[10px] uppercase tracking-wider mb-1.5 text-ink-muted">Decisions</div>
+            <ul className="space-y-1.5">
+              {rationale.decisions.map((d, i) => (
+                <li key={i} className="flex gap-2 leading-snug">
+                  <span className="shrink-0 text-indigo-600 font-bold">•</span>
+                  <span>{d}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>
