@@ -1,4 +1,5 @@
-import type { Shipment, Vehicle, VehicleType, VehicleWithLoad, ShipmentStatus } from '@oway/shared';
+import type { Accessorial, Shipment, Vehicle, VehicleType, VehicleWithLoad, ShipmentStatus } from '@oway/shared';
+import { ACCESSORIALS } from '@oway/shared';
 import { isActiveAssignment } from '@oway/shared';
 import { prisma } from '../db.js';
 import { ApiError } from '../lib/api-error.js';
@@ -26,11 +27,13 @@ export async function listVehiclesWithLoad(): Promise<VehicleWithLoad[]> {
 
   return vehicles.map((v) => {
     const { loadPallets, loadWeightLbs, activeIds } = activeLoad(v.shipments);
+    const capabilities = parseCapabilities(v.capabilities);
     return {
       id: v.id,
       type: v.type as VehicleType,
       maxPallets: v.maxPallets,
       maxWeightLbs: v.maxWeightLbs,
+      capabilities,
       assignedShipmentIds: activeIds,
       loadPallets,
       loadWeightLbs,
@@ -48,10 +51,7 @@ export async function getVehicleWorkload(vehicleId: string): Promise<{ vehicle: 
   if (!v) throw new ApiError(404, 'NOT_FOUND', `Vehicle ${vehicleId} not found`);
 
   const { loadPallets, loadWeightLbs, activeIds } = activeLoad(v.shipments);
-
-  // The workload endpoint returns *active* shipments only — what's currently
-  // on the truck. Historical (delivered/cancelled) shipments can be found via
-  // GET /shipments?vehicleId=X instead.
+  const capabilities = parseCapabilities(v.capabilities);
   const active = v.shipments.filter((s) => isActiveAssignment(s.status as ShipmentStatus));
 
   return {
@@ -60,6 +60,7 @@ export async function getVehicleWorkload(vehicleId: string): Promise<{ vehicle: 
       type: v.type as VehicleType,
       maxPallets: v.maxPallets,
       maxWeightLbs: v.maxWeightLbs,
+      capabilities,
       assignedShipmentIds: activeIds,
       loadPallets,
       loadWeightLbs,
@@ -77,5 +78,12 @@ export async function listVehicles(): Promise<Vehicle[]> {
     type: v.type as VehicleType,
     maxPallets: v.maxPallets,
     maxWeightLbs: v.maxWeightLbs,
+    capabilities: parseCapabilities(v.capabilities),
   }));
+}
+
+function parseCapabilities(raw: string): Accessorial[] {
+  return (JSON.parse(raw) as string[]).filter(
+    (a): a is Accessorial => (ACCESSORIALS as readonly string[]).includes(a),
+  );
 }

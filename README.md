@@ -128,11 +128,9 @@ This is where the take-home rewards thinking. Both problems are NP-hard at scale
 
 ### Distance model
 
-Straight-line **haversine** between geocoded coordinates. Not OSRM, not Google Maps.
+Route generation calls the **OSRM public API** (`router.project-osrm.org/table/v1/driving`) to fetch a full distance matrix of real driving distances between all stops. Falls back to **haversine** (straight-line great-circle) if the API is unreachable.
 
-**Why**: deterministic, free, no API key. Good enough to demonstrate the algorithm structure. The routing engine takes a `distanceFn` parameter — swapping to OSRM is one file (`src/domain/distance.ts`).
-
-**Tradeoff**: LA freeway geometry is far from "as the crow flies." Expect actual drive times to be 1.3–1.6× the haversine estimate. A production system would want real road distances, ideally with real-time traffic.
+**Why both**: OSRM gives realistic LA freeway distances (~1.3–1.6× haversine). Haversine fallback means the demo never breaks even if the OSRM server is down. The routing engine takes a `distanceFn` parameter — the OSRM matrix is transparently wrapped as one. Each computed route tags its `distanceSource` ("osrm" or "haversine") so you can tell which was used.
 
 ### Vehicle assignment
 
@@ -169,10 +167,12 @@ Seed shipments carry four accessorial flags: `liftgate`, `appointment`, `limited
 
 | Accessorial | Treatment |
 | --- | --- |
-| `hazmat` | Visible as a red pill on the row; **used by routing** — adjacent hazmat stops get a clustering bonus in the scoring function (amortizes the per-stop protocol overhead). |
-| `liftgate` | Visible as a pill. Informational — real impl would prefer vehicles equipped with a liftgate, but we don't model vehicle capabilities. |
-| `appointment` | Visible as a pill. Informational — implies a tighter delivery window in practice; the existing time-window penalty already handles the ordering consequence. |
-| `limited_access` | Visible as a pill. Informational — real impl would avoid routing oversized vehicles (SHP010: "no trucks over 26ft"). Surfaced to the dispatcher via the address `notes` callout. |
+| `hazmat` | Visible as a red pill on the row; **used by routing** — adjacent hazmat stops get a clustering bonus in the scoring function (amortizes the per-stop protocol overhead). Only `dry_van` vehicles have hazmat capability. |
+| `liftgate` | Visible as a pill. **Checked at assignment** — assigning a liftgate shipment to a dry van (no liftgate) surfaces a warning (but doesn't block — ops may have site equipment). Only `box_truck` vehicles have liftgate capability. |
+| `appointment` | Visible as a pill. All vehicles have appointment capability. The time-window penalty in routing already handles the scheduling consequence. |
+| `limited_access` | Visible as a pill. **Checked at assignment** — only `box_truck` vehicles (shorter) have limited-access capability. Surfaced to the dispatcher via the address `notes` callout ("no trucks over 26ft"). |
+
+**Vehicle capabilities**: each vehicle has a `capabilities` array seeded by type (`box_truck`: liftgate, limited_access, appointment; `dry_van`: hazmat, appointment). When a shipment's accessorials aren't covered by the target vehicle, the assignment succeeds but returns `accessorialWarnings` — the UI can surface these to let ops decide whether to override.
 
 The `notes` field on individual addresses (SHP007, SHP010, SHP034) carries driver-critical caveats and renders as an amber callout in the detail drawer, the route stop list, and the map popup. Drivers need to see these before arriving.
 
@@ -297,7 +297,6 @@ Tests focus on the domain layer because that's where bugs cost real money. The H
 These are scoped extensions that would slot in cleanly given the architecture:
 
 - **Auth**: cookie-based session via Lucia or NextAuth. Already have a service-layer pattern that doesn't know about HTTP, so adding auth middleware is mechanical.
-- **Real road distances**: swap `domain/distance.ts:haversineMiles` for an OSRM call. The routing engine's `distanceFn` parameter is the seam.
 - **Multi-day planning**: shipments have a `createdAt`; a `dispatchDate` field would let the dashboard scope to a single day.
 - **Drag-and-drop assignment**: the multi-select + click-vehicle pattern is faster for ops doing 30 assignments at once, but DnD is more discoverable. `dnd-kit` would slot into the existing selection store.
 - **Real-time updates**: SSE or WebSockets push from the API on shipment/route changes, replacing the 5s polling.

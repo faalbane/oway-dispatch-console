@@ -57,12 +57,32 @@ async function main() {
     });
   }
 
-  // Vehicles
+  // Vehicles — with sensible default capabilities by type.
+  // box_truck: has liftgate (hydraulic platform), can access limited-access areas (shorter length).
+  // dry_van: can carry hazmat (sealed trailer with spill containment), appointment-capable.
+  // Both support appointment scheduling.
+  const VEHICLE_CAPABILITIES: Record<string, string[]> = {
+    box_truck: ['liftgate', 'limited_access', 'appointment'],
+    dry_van: ['hazmat', 'appointment'],
+  };
+
   for (const v of seed.vehicles) {
+    const caps = VEHICLE_CAPABILITIES[v.type] ?? [];
     await prisma.vehicle.upsert({
       where: { id: v.id },
-      create: { id: v.id, type: v.type, maxPallets: v.maxPallets, maxWeightLbs: v.maxWeightLbs },
-      update: { type: v.type, maxPallets: v.maxPallets, maxWeightLbs: v.maxWeightLbs },
+      create: {
+        id: v.id,
+        type: v.type,
+        maxPallets: v.maxPallets,
+        maxWeightLbs: v.maxWeightLbs,
+        capabilities: JSON.stringify(caps),
+      },
+      update: {
+        type: v.type,
+        maxPallets: v.maxPallets,
+        maxWeightLbs: v.maxWeightLbs,
+        capabilities: JSON.stringify(caps),
+      },
     });
   }
 

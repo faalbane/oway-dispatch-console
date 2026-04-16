@@ -30,7 +30,12 @@ import { validateCapacity } from '../domain/capacity.js';
 import { isBlocking } from '../domain/data-quality.js';
 import { deserializeShipment } from '../lib/serialize.js';
 
-export async function assignShipments(vehicleId: string, shipmentIds: string[]): Promise<Shipment[]> {
+interface AssignmentResult {
+  shipments: Shipment[];
+  accessorialWarnings: Array<{ shipmentId: string; missing: string[] }>;
+}
+
+export async function assignShipments(vehicleId: string, shipmentIds: string[]): Promise<AssignmentResult> {
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
       where: { id: vehicleId },
@@ -91,6 +96,20 @@ export async function assignShipments(vehicleId: string, shipmentIds: string[]):
       });
     }
 
+    // Accessorial compatibility: warn (but don't block) if any shipment's
+    // accessorials aren't supported by the vehicle. Ops may override — e.g.,
+    // a manual liftgate exists on-site.
+    const vehicleCaps = JSON.parse(vehicle.capabilities) as string[];
+    const capsSet = new Set(vehicleCaps);
+    const accessorialWarnings: Array<{ shipmentId: string; missing: string[] }> = [];
+    for (const s of shipments) {
+      const needed = JSON.parse(s.accessorials) as string[];
+      const missing = needed.filter((a) => !capsSet.has(a));
+      if (missing.length > 0) {
+        accessorialWarnings.push({ shipmentId: s.id, missing });
+      }
+    }
+
     // Which vehicles have a stale route after this assignment?
     // Only those whose *set* of assigned shipments actually changes. A
     // re-confirmation of an existing assignment (same vehicle, already
@@ -120,7 +139,10 @@ export async function assignShipments(vehicleId: string, shipmentIds: string[]):
     }
 
     const updatedRows = await tx.shipment.findMany({ where: { id: { in: shipmentIds } } });
-    return updatedRows.map(deserializeShipment);
+    return {
+      shipments: updatedRows.map(deserializeShipment),
+      accessorialWarnings,
+    };
   });
 }
 

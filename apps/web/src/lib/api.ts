@@ -69,7 +69,11 @@ export const api = {
   }),
 
   assign: (req: AssignmentRequest) =>
-    request<{ vehicleId: string; shipments: Shipment[] }>('/assignments', {
+    request<{
+      vehicleId: string;
+      shipments: Shipment[];
+      accessorialWarnings: Array<{ shipmentId: string; missing: string[] }>;
+    }>('/assignments', {
       method: 'POST',
       body: JSON.stringify(req),
     }),

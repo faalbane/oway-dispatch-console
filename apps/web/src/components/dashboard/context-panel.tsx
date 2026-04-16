@@ -61,19 +61,20 @@ function SelectionContext({ shipments, onClear }: { shipments: Shipment[]; onCle
   const totalPallets = shipments.reduce((sum, s) => sum + s.palletCount, 0);
   const totalWeight = shipments.reduce((sum, s) => sum + s.weightLbs, 0);
 
+  const [warnings, setWarnings] = useState<Array<{ shipmentId: string; missing: string[] }>>([]);
+
   const assignMutation = useMutation({
     mutationFn: () => api.assign({ vehicleId: pickedVehicle!, shipmentIds: shipments.map((s) => s.id) }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
-      // Route is invalidated server-side on any assignment change; refetch so
-      // the map clears rather than showing stale stops from the old plan.
       queryClient.invalidateQueries({ queryKey: ['route'] });
+      if (data.accessorialWarnings?.length > 0) {
+        setWarnings(data.accessorialWarnings);
+      }
       onClear();
       setError(null);
-      // Focus the vehicle the user just assigned to — prevents the right rail
-      // from snapping to the empty state after a successful assignment.
       focusVehicle(data.vehicleId);
     },
     onError: (err) => {

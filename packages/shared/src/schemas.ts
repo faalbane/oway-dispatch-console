@@ -125,6 +125,7 @@ export const VehicleSchema = z.object({
   type: VehicleTypeSchema,
   maxPallets: z.number().int().positive(),
   maxWeightLbs: z.number().positive(),
+  capabilities: z.array(AccessorialSchema).default([]),
 });
 export type Vehicle = z.infer<typeof VehicleSchema>;
 

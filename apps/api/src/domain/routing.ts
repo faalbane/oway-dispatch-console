@@ -72,17 +72,37 @@ export function generateRoute(
   const hazBonus = opts.hazmatClusteringBonus ?? ROUTING_DEFAULTS.hazmatClusteringBonus;
   const departureMin = parseHHMM(opts.departureTime ?? ROUTING_DEFAULTS.depotDepartureTime);
 
-  // Separate routable from unroutable
-  const routable: { ship: Shipment; pickup: InternalStop; delivery: InternalStop }[] = [];
+  // Separate into three categories:
+  //   - full: both pickup and delivery (ASSIGNED shipments with good geocoding)
+  //   - deliveryOnly: pickup already happened (PICKED_UP shipments — originLatLng is null)
+  //   - unroutable: can't geocode at all
+  const full: { ship: Shipment; pickup: InternalStop; delivery: InternalStop }[] = [];
+  const deliveryOnly: { ship: Shipment; delivery: InternalStop }[] = [];
   const unroutable: string[] = [];
 
   for (const r of shipments) {
-    if (!r.originLatLng || !r.destLatLng) {
+    if (!r.destLatLng) {
       unroutable.push(r.shipment.id);
       continue;
     }
     const isHaz = r.shipment.accessorials.includes('hazmat');
-    routable.push({
+    const delivery: InternalStop = {
+      shipmentId: r.shipment.id,
+      kind: 'delivery',
+      address: r.shipment.destination,
+      loc: r.destLatLng,
+      openMin: parseHHMM(r.shipment.destination.openTime),
+      closeMin: parseHHMM(r.shipment.destination.closeTime),
+      isHazmat: isHaz,
+    };
+
+    if (!r.originLatLng) {
+      // PICKED_UP shipment — pickup already happened, only delivery remains.
+      deliveryOnly.push({ ship: r.shipment, delivery });
+      continue;
+    }
+
+    full.push({
       ship: r.shipment,
       pickup: {
         shipmentId: r.shipment.id,
@@ -93,35 +113,31 @@ export function generateRoute(
         closeMin: parseHHMM(r.shipment.origin.closeTime),
         isHazmat: isHaz,
       },
-      delivery: {
-        shipmentId: r.shipment.id,
-        kind: 'delivery',
-        address: r.shipment.destination,
-        loc: r.destLatLng,
-        openMin: parseHHMM(r.shipment.destination.openTime),
-        closeMin: parseHHMM(r.shipment.destination.closeTime),
-        isHazmat: isHaz,
-      },
+      delivery,
     });
   }
 
   // 1. GREEDY INSERTION ------------------------------------------------------
-  // Sort by earliest delivery deadline (tightest first) so we anchor the route
-  // around the most time-constrained stops.
-  routable.sort((a, b) => a.delivery.closeMin - b.delivery.closeMin);
+  // Start by inserting delivery-only stops (PICKED_UP shipments — simpler,
+  // no precedence constraint). Then insert full pickup-delivery pairs sorted
+  // by tightest delivery deadline so we anchor around the most constrained.
+  const ctx: ScoringContext = {
+    depot: opts.depot, departureMin, speed, service, windowPenalty, hazBonus, distance,
+  };
 
   let stops: InternalStop[] = [];
 
-  for (const { pickup, delivery } of routable) {
-    const insertion = findBestInsertion(stops, pickup, delivery, {
-      depot: opts.depot,
-      departureMin,
-      speed,
-      service,
-      windowPenalty,
-      hazBonus,
-      distance,
-    });
+  // Insert delivery-only stops first (simpler — one stop per shipment)
+  deliveryOnly.sort((a, b) => a.delivery.closeMin - b.delivery.closeMin);
+  for (const { delivery } of deliveryOnly) {
+    const best = findBestSingleInsertion(stops, delivery, ctx);
+    stops = best.stops;
+  }
+
+  // Insert full pickup-delivery pairs
+  full.sort((a, b) => a.delivery.closeMin - b.delivery.closeMin);
+  for (const { pickup, delivery } of full) {
+    const insertion = findBestInsertion(stops, pickup, delivery, ctx);
     if (insertion === null) {
       unroutable.push(pickup.shipmentId);
       continue;
@@ -130,15 +146,7 @@ export function generateRoute(
   }
 
   // 2. CONSTRAINED 2-OPT IMPROVEMENT ----------------------------------------
-  stops = twoOptImprove(stops, {
-    depot: opts.depot,
-    departureMin,
-    speed,
-    service,
-    windowPenalty,
-    hazBonus,
-    distance,
-  });
+  stops = twoOptImprove(stops, ctx);
 
   // 3. SCORE AND BUILD OUTPUT -----------------------------------------------
   const traversal = traverse(stops, {
@@ -188,6 +196,23 @@ interface ScoringContext {
   windowPenalty: number;
   hazBonus: number;
   distance: DistanceFn;
+}
+
+function findBestSingleInsertion(
+  current: InternalStop[],
+  stop: InternalStop,
+  ctx: ScoringContext,
+): { stops: InternalStop[]; score: number } {
+  const n = current.length;
+  let best: { stops: InternalStop[]; score: number } | null = null;
+  for (let i = 0; i <= n; i++) {
+    const candidate = [...current.slice(0, i), stop, ...current.slice(i)];
+    const score = scoreRoute(candidate, ctx);
+    if (best === null || score < best.score) {
+      best = { stops: candidate, score };
+    }
+  }
+  return best!;
 }
 
 function findBestInsertion(

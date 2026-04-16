@@ -71,6 +71,15 @@ export function VehicleRail({ selectedShipments }: Props) {
                     {v.type.replace('_', ' ')}
                   </span>
                 </div>
+                {v.capabilities.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {v.capabilities.map((c) => (
+                      <span key={c} className="inline-block px-1.5 py-0.5 rounded text-[9px] bg-surface-muted text-ink-subtle border border-line/60">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <CapacityBar
                   label="Pallets"

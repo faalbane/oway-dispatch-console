@@ -1,19 +1,20 @@
-import type { Route } from '@oway/shared';
+import type { Route, ShipmentStatus } from '@oway/shared';
+import { isActiveAssignment } from '@oway/shared';
 import { prisma } from '../db.js';
 import { ApiError } from '../lib/api-error.js';
 import { generateRoute, type RouteableShipment } from '../domain/routing.js';
+import { getDistanceMatrix, haversineMiles, matrixDistanceFn, type LatLng } from '../domain/distance.js';
 import { addressKey } from '../lib/address-key.js';
 import { deserializeShipment } from '../lib/serialize.js';
 
 /**
- * Route generation operates on shipments whose pickup *and* delivery are still
- * ahead — i.e. status === 'ASSIGNED'. Once a shipment is PICKED_UP, the
- * pickup stop is in the past; including it in re-routing would plan a
- * duplicate pickup visit. That's a whole separate problem (mid-route
- * re-optimization) and out of scope for v1.
+ * Route generation includes:
+ *   - ASSIGNED shipments: full pickup + delivery stops
+ *   - PICKED_UP shipments: delivery stop only (pickup already happened)
+ *   - DELIVERED/CANCELLED: excluded (no longer on the truck)
  *
- * DELIVERED/CANCELLED shipments are obviously excluded — they're no longer on
- * the truck.
+ * Distance computation tries the OSRM public API for real road distances,
+ * then falls back to haversine if the API is unreachable.
  */
 export async function computeRouteForVehicle(vehicleId: string): Promise<Route> {
   const vehicle = await prisma.vehicle.findUnique({
@@ -22,48 +23,76 @@ export async function computeRouteForVehicle(vehicleId: string): Promise<Route> 
   });
   if (!vehicle) throw new ApiError(404, 'NOT_FOUND', `Vehicle ${vehicleId} not found`);
 
-  const plannable = vehicle.shipments.filter((s) => s.status === 'ASSIGNED');
-  if (plannable.length === 0) {
-    throw new ApiError(400, 'ROUTE_INFEASIBLE', `Vehicle ${vehicleId} has no ASSIGNED shipments to route`);
+  const activeShipments = vehicle.shipments.filter((s) =>
+    isActiveAssignment(s.status as ShipmentStatus),
+  );
+  if (activeShipments.length === 0) {
+    throw new ApiError(400, 'ROUTE_INFEASIBLE', `Vehicle ${vehicleId} has no active shipments to route`);
   }
 
   const depot = await prisma.depot.findUnique({ where: { id: 'depot' } });
   if (!depot) throw new ApiError(500, 'INTERNAL_ERROR', 'Depot not configured');
 
-  // Load geocodes for every address
-  const allKeys = plannable.flatMap((s) => [
+  // Load geocodes
+  const allKeys = activeShipments.flatMap((s) => [
     addressKey(JSON.parse(s.origin)),
     addressKey(JSON.parse(s.destination)),
   ]);
   const geocodes = await prisma.geocode.findMany({ where: { key: { in: allKeys } } });
   const geoMap = new Map(geocodes.map((g) => [g.key, g]));
 
-  const routeable: RouteableShipment[] = plannable.map((s) => {
+  const routeable: RouteableShipment[] = activeShipments.map((s) => {
     const ship = deserializeShipment(s);
     const oKey = addressKey(ship.origin);
     const dKey = addressKey(ship.destination);
     const o = geoMap.get(oKey);
     const d = geoMap.get(dKey);
+
+    const isPickedUp = s.status === 'PICKED_UP';
+
     return {
       shipment: ship,
-      originLatLng: o && o.lat !== null && o.lng !== null ? { lat: o.lat, lng: o.lng } : null,
+      // For PICKED_UP shipments, null out the origin — the routing engine
+      // will emit only the delivery stop when originLatLng is null.
+      originLatLng: isPickedUp
+        ? null
+        : o && o.lat !== null && o.lng !== null
+          ? { lat: o.lat, lng: o.lng }
+          : null,
       destLatLng: d && d.lat !== null && d.lng !== null ? { lat: d.lat, lng: d.lng } : null,
     };
   });
 
+  // Collect all geocoded points for the OSRM distance matrix.
+  const allPoints: LatLng[] = [{ lat: depot.latitude, lng: depot.longitude }];
+  for (const r of routeable) {
+    if (r.originLatLng) allPoints.push(r.originLatLng);
+    if (r.destLatLng) allPoints.push(r.destLatLng);
+  }
+
+  // Try real road distances; fall back to haversine.
+  let distanceFn = haversineMiles;
+  let distanceSource = 'haversine';
+  const matrix = await getDistanceMatrix(allPoints);
+  if (matrix) {
+    distanceFn = matrixDistanceFn(allPoints, matrix);
+    distanceSource = 'osrm';
+  }
+
   const route = generateRoute(vehicleId, routeable, {
     depot: { lat: depot.latitude, lng: depot.longitude },
+    distanceFn,
   });
 
-  // Persist (replaces any previous route for this vehicle via delete-then-create
-  // pattern; callers already clear routes on assignment changes).
+  // Tag the route with which distance source was used (useful for debugging
+  // and for the README claim that we try OSRM first).
+  (route as Route & { distanceSource?: string }).distanceSource = distanceSource;
+
+  // Persist
   await prisma.$transaction([
     prisma.route.deleteMany({ where: { vehicleId } }),
     prisma.route.create({
-      data: {
-        vehicleId,
-        payload: JSON.stringify(route),
-      },
+      data: { vehicleId, payload: JSON.stringify(route) },
     }),
   ]);
 

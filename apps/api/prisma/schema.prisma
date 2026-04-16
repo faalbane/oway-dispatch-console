@@ -43,6 +43,7 @@ model Vehicle {
   type         String     // dry_van | box_truck
   maxPallets   Int
   maxWeightLbs Float
+  capabilities String     @default("[]") // JSON-serialized Accessorial[] the vehicle supports
   shipments    Shipment[]
   routes       Route[]
 }
