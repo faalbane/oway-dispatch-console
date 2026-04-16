@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { useEffect } from 'react';
 import type { Depot, Route } from '@oway/shared';
 import { fmtTime, fmtTimeRange } from '@/lib/format';
+import { LinkifyShipments } from './linkify-shipments';
 
 // Fix Leaflet's default icon URLs (Next.js bundling issue)
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -88,7 +89,7 @@ export function RouteMap({ route, depot }: Props) {
             <Popup>
               <div className="text-xs space-y-0.5">
                 <div className="font-semibold">
-                  {s.order + 1}. {s.kind.toUpperCase()} — {s.shipmentId}
+                  {s.order + 1}. {s.kind.toUpperCase()} — <LinkifyShipments text={s.shipmentId} />
                 </div>
                 <div>{s.address.name}</div>
                 <div className="text-gray-600">{s.address.address1}, {s.address.city}, {s.address.state} {s.address.zipCode}</div>
