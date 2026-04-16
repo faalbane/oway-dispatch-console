@@ -1,11 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, AlertCircle, FileWarning } from 'lucide-react';
+import { AlertTriangle, AlertCircle, ArrowRight, FileWarning } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Pill } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { useDispatch } from '@/state/dispatch-store';
 
 const ICONS = {
   MISSING_ADDRESS: AlertCircle,
@@ -19,6 +20,7 @@ const ICONS = {
 } as const;
 
 export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { openShipmentDetail } = useDispatch();
   const { data } = useQuery({
     queryKey: ['data-issues'],
     queryFn: () => api.listDataIssues(),
@@ -28,6 +30,11 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
   const all = (data ?? []).flatMap((s) =>
     s.issues.map((i) => ({ shipmentId: s.shipmentId, ...i })),
   );
+
+  const jumpTo = (shipmentId: string) => {
+    openShipmentDetail(shipmentId);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -47,29 +54,39 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
               {all.map((issue, idx) => {
                 const Icon = ICONS[issue.code as keyof typeof ICONS] ?? AlertTriangle;
                 return (
-                  <li key={idx} className="px-5 py-3 flex items-start gap-3">
-                    <Icon
-                      size={16}
-                      className={cn(
-                        'shrink-0 mt-0.5',
-                        issue.severity === 'blocking' ? 'text-red-600' : 'text-amber-600',
-                      )}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold">{issue.shipmentId}</span>
-                        <Pill tone={issue.severity === 'blocking' ? 'danger' : 'warn'}>
-                          {issue.severity}
-                        </Pill>
-                        <Pill tone="neutral">{issue.code.replace(/_/g, ' ').toLowerCase()}</Pill>
-                      </div>
-                      <div className="text-xs text-ink-muted mt-0.5">{issue.message}</div>
-                      {issue.field && (
-                        <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
-                          field: {issue.field}
+                  <li key={idx}>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo(issue.shipmentId)}
+                      className="w-full px-5 py-3 flex items-start gap-3 hover:bg-surface-subtle text-left transition-colors group"
+                    >
+                      <Icon
+                        size={16}
+                        className={cn(
+                          'shrink-0 mt-0.5',
+                          issue.severity === 'blocking' ? 'text-red-600' : 'text-amber-600',
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-semibold">{issue.shipmentId}</span>
+                          <Pill tone={issue.severity === 'blocking' ? 'danger' : 'warn'}>
+                            {issue.severity}
+                          </Pill>
+                          <Pill tone="neutral">{issue.code.replace(/_/g, ' ').toLowerCase()}</Pill>
                         </div>
-                      )}
-                    </div>
+                        <div className="text-xs text-ink-muted mt-0.5">{issue.message}</div>
+                        {issue.field && (
+                          <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
+                            field: {issue.field}
+                          </div>
+                        )}
+                      </div>
+                      <ArrowRight
+                        size={14}
+                        className="shrink-0 mt-1 text-ink-subtle opacity-0 group-hover:opacity-100 group-hover:text-indigo-600 transition-opacity"
+                      />
+                    </button>
                   </li>
                 );
               })}

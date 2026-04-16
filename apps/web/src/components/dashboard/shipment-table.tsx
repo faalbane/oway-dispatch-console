@@ -17,7 +17,7 @@ const STATUS_FILTERS: Array<{ value: ShipmentStatus | 'ALL'; label: string }> = 
 ];
 
 interface Props {
-  onSelectShipment: (id: string) => void;
+  onSelectShipment: (id: string | null) => void;
 }
 
 export function ShipmentTable({ onSelectShipment }: Props) {
