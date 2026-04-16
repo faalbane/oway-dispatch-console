@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, Compass, Info, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Compass, Info, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,38 @@ export function ContextPanel({ selectedShipments, detailShipmentId, onCloseDetai
     return <SelectionContext shipments={selectedShipments} onClear={clearSelection} />;
   }
   return <EmptyContext />;
+}
+
+function NavButtons() {
+  const { goBack, goForward, canGoBack, canGoForward } = useDispatch();
+  return (
+    <div className="flex items-center gap-0.5 mr-1">
+      <button
+        type="button"
+        onClick={goBack}
+        disabled={!canGoBack}
+        title="Back"
+        className={cn(
+          'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
+          canGoBack ? 'text-ink-muted hover:bg-surface-muted hover:text-ink' : 'text-line-strong cursor-not-allowed',
+        )}
+      >
+        <ArrowLeft size={14} />
+      </button>
+      <button
+        type="button"
+        onClick={goForward}
+        disabled={!canGoForward}
+        title="Forward"
+        className={cn(
+          'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
+          canGoForward ? 'text-ink-muted hover:bg-surface-muted hover:text-ink' : 'text-line-strong cursor-not-allowed',
+        )}
+      >
+        <ArrowRight size={14} />
+      </button>
+    </div>
+  );
 }
 
 function EmptyContext() {
@@ -220,9 +252,12 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
             {v.assignedShipmentIds.length} shipment{v.assignedShipmentIds.length === 1 ? '' : 's'}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X size={14} />
-        </Button>
+        <div className="flex items-center">
+          <NavButtons />
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X size={14} />
+          </Button>
+        </div>
       </div>
 
       {/* Single scrollable content area — one scrollbar for the whole panel */}
@@ -440,9 +475,12 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
             <div className="text-[11px] text-ink-muted mt-1 font-mono">Vehicle: {shipment.vehicleId}</div>
           )}
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X size={14} />
-        </Button>
+        <div className="flex items-center">
+          <NavButtons />
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X size={14} />
+          </Button>
+        </div>
       </div>
 
       {/* Mini-map showing pickup → delivery */}
