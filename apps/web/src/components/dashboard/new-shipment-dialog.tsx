@@ -9,34 +9,61 @@ import { api, ApiClientError } from '@/lib/api';
 import { ACCESSORIALS, type Accessorial } from '@oway/shared';
 import { cn } from '@/lib/cn';
 
-const blank = (kind: 'origin' | 'destination') => ({
-  name: kind === 'origin' ? 'New Origin' : 'New Destination',
-  address1: '',
-  city: '',
-  state: 'CA',
-  zipCode: '',
-  contactPerson: '',
-  phoneNumber: '',
-  openTime: '08:00',
-  closeTime: '17:00',
-});
+const PREFILLS = [
+  {
+    origin: { name: 'LA Cold Storage', address1: '1100 E 6th St', city: 'Los Angeles', state: 'CA', zipCode: '90021', contactPerson: 'Mike Chen', phoneNumber: '+12135559001', openTime: '06:00', closeTime: '14:00' },
+    destination: { name: 'Whole Foods Pasadena', address1: '3751 E Foothill Blvd', city: 'Pasadena', state: 'CA', zipCode: '91107', contactPerson: 'Sarah Lin', phoneNumber: '+16265559002', openTime: '07:00', closeTime: '15:00' },
+    palletCount: 4, weightLbs: 2400, description: 'Organic Produce',
+  },
+  {
+    origin: { name: 'Torrance Warehouse', address1: '2510 W 237th St', city: 'Torrance', state: 'CA', zipCode: '90505', contactPerson: 'Dave Park', phoneNumber: '+13105559003', openTime: '07:00', closeTime: '16:00' },
+    destination: { name: 'Target Costa Mesa', address1: '3030 Harbor Blvd', city: 'Costa Mesa', state: 'CA', zipCode: '92626', contactPerson: 'Lisa Tran', phoneNumber: '+17145559004', openTime: '08:00', closeTime: '18:00' },
+    palletCount: 6, weightLbs: 3600, description: 'Household Goods',
+  },
+  {
+    origin: { name: 'Sun Valley Auto Parts', address1: '8939 Glenoaks Blvd', city: 'Sun Valley', state: 'CA', zipCode: '91352', contactPerson: 'Carlos Ruiz', phoneNumber: '+18185559005', openTime: '07:00', closeTime: '15:00' },
+    destination: { name: 'Pep Boys Riverside', address1: '3560 Central Ave', city: 'Riverside', state: 'CA', zipCode: '92506', contactPerson: 'James Wu', phoneNumber: '+19515559006', openTime: '09:00', closeTime: '17:00' },
+    palletCount: 3, weightLbs: 1800, description: 'Brake Pads & Rotors',
+  },
+];
+
+let prefillIdx = 0;
+
+function nextPrefill() {
+  const p = PREFILLS[prefillIdx % PREFILLS.length]!;
+  prefillIdx++;
+  return p;
+}
+
+function defaultForm() {
+  const p = nextPrefill();
+  return {
+    origin: { ...p.origin },
+    destination: { ...p.destination },
+    palletCount: p.palletCount,
+    weightLbs: p.weightLbs,
+    description: p.description,
+  };
+}
 
 export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient();
-  const [origin, setOrigin] = useState(blank('origin'));
-  const [destination, setDestination] = useState(blank('destination'));
-  const [palletCount, setPalletCount] = useState<number>(1);
-  const [weightLbs, setWeightLbs] = useState<number>(500);
-  const [description, setDescription] = useState('');
+  const [initial] = useState(defaultForm);
+  const [origin, setOrigin] = useState(initial.origin);
+  const [destination, setDestination] = useState(initial.destination);
+  const [palletCount, setPalletCount] = useState<number>(initial.palletCount);
+  const [weightLbs, setWeightLbs] = useState<number>(initial.weightLbs);
+  const [description, setDescription] = useState(initial.description);
   const [accessorials, setAccessorials] = useState<Accessorial[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const reset = () => {
-    setOrigin(blank('origin'));
-    setDestination(blank('destination'));
-    setPalletCount(1);
-    setWeightLbs(500);
-    setDescription('');
+    const next = defaultForm();
+    setOrigin(next.origin);
+    setDestination(next.destination);
+    setPalletCount(next.palletCount);
+    setWeightLbs(next.weightLbs);
+    setDescription(next.description);
     setAccessorials([]);
     setError(null);
   };
@@ -161,8 +188,8 @@ function AddressFieldset({
   onChange,
 }: {
   label: string;
-  value: ReturnType<typeof blank>;
-  onChange: (v: ReturnType<typeof blank>) => void;
+  value: typeof PREFILLS[0]['origin'];
+  onChange: (v: typeof PREFILLS[0]['origin']) => void;
 }) {
   const set = <K extends keyof typeof value>(k: K, v: (typeof value)[K]) => onChange({ ...value, [k]: v });
   return (
