@@ -174,7 +174,7 @@ function SortableHeader({
   return (
     <th
       className={cn(
-        'px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted',
+        'px-2 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted',
         align === 'right' ? 'text-right' : 'text-left',
       )}
     >
@@ -234,17 +234,17 @@ function ShipmentRow({
       <td className="px-3 py-2.5">
         <StatusBadge status={shipment.status} />
       </td>
-      <td className="px-3 py-2.5">
-        <div className="text-xs text-ink truncate max-w-[280px]">
+      <td className="px-2 py-2.5 max-w-0">
+        <div className="text-xs text-ink truncate" title={`${fmtAddress(shipment.origin)} → ${fmtAddress(shipment.destination)}`}>
           <span className="font-medium">{fmtAddress(shipment.origin)}</span>
           <span className="text-ink-subtle"> → </span>
           <span className="font-medium">{fmtAddress(shipment.destination)}</span>
         </div>
-        <div className="text-[11px] text-ink-subtle truncate max-w-[280px]">{shipment.description}</div>
+        <div className="text-[11px] text-ink-subtle truncate" title={shipment.description}>{shipment.description}</div>
       </td>
-      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-xs">{fmtPallets(shipment.palletCount)}</td>
-      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-xs">{fmtLbs(shipment.weightLbs)}</td>
-      <td className="px-3 py-2.5">
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.palletCount}p</td>
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.weightLbs.toLocaleString()} lbs</td>
+      <td className="px-2 py-2.5">
         <div className="flex items-center gap-1 flex-wrap">
           {blocking && (
             <Pill tone="danger" className="gap-1">
@@ -263,7 +263,7 @@ function ShipmentRow({
           ))}
         </div>
       </td>
-      <td className="px-3 py-2.5 text-right">
+      <td className="px-2 py-2.5 text-right whitespace-nowrap">
         {shipment.vehicleId ? (
           <span className="font-mono text-xs text-indigo-700">{shipment.vehicleId}</span>
         ) : (
