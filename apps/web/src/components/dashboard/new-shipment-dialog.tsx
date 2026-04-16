@@ -9,42 +9,30 @@ import { api, ApiClientError } from '@/lib/api';
 import { ACCESSORIALS, type Accessorial } from '@oway/shared';
 import { cn } from '@/lib/cn';
 
-const PREFILLS = [
-  {
-    origin: { name: 'LA Cold Storage', address1: '1100 E 6th St', city: 'Los Angeles', state: 'CA', zipCode: '90021', contactPerson: 'Mike Chen', phoneNumber: '+12135559001', openTime: '06:00', closeTime: '14:00' },
-    destination: { name: 'Whole Foods Pasadena', address1: '3751 E Foothill Blvd', city: 'Pasadena', state: 'CA', zipCode: '91107', contactPerson: 'Sarah Lin', phoneNumber: '+16265559002', openTime: '07:00', closeTime: '15:00' },
-    palletCount: 4, weightLbs: 2400, description: 'Organic Produce',
-  },
-  {
-    origin: { name: 'Torrance Warehouse', address1: '2510 W 237th St', city: 'Torrance', state: 'CA', zipCode: '90505', contactPerson: 'Dave Park', phoneNumber: '+13105559003', openTime: '07:00', closeTime: '16:00' },
-    destination: { name: 'Target Costa Mesa', address1: '3030 Harbor Blvd', city: 'Costa Mesa', state: 'CA', zipCode: '92626', contactPerson: 'Lisa Tran', phoneNumber: '+17145559004', openTime: '08:00', closeTime: '18:00' },
-    palletCount: 6, weightLbs: 3600, description: 'Household Goods',
-  },
-  {
-    origin: { name: 'Sun Valley Auto Parts', address1: '8939 Glenoaks Blvd', city: 'Sun Valley', state: 'CA', zipCode: '91352', contactPerson: 'Carlos Ruiz', phoneNumber: '+18185559005', openTime: '07:00', closeTime: '15:00' },
-    destination: { name: 'Pep Boys Riverside', address1: '3560 Central Ave', city: 'Riverside', state: 'CA', zipCode: '92506', contactPerson: 'James Wu', phoneNumber: '+19515559006', openTime: '09:00', closeTime: '17:00' },
-    palletCount: 3, weightLbs: 1800, description: 'Brake Pads & Rotors',
-  },
-];
-
-let prefillIdx = 0;
-
-function nextPrefill() {
-  const p = PREFILLS[prefillIdx % PREFILLS.length]!;
-  prefillIdx++;
-  return p;
-}
+const blankAddress = () => ({
+  name: '',
+  address1: '',
+  city: '',
+  state: 'CA',
+  zipCode: '',
+  contactPerson: '',
+  phoneNumber: '',
+  openTime: '08:00',
+  closeTime: '17:00',
+});
 
 function defaultForm() {
-  const p = nextPrefill();
   return {
-    origin: { ...p.origin },
-    destination: { ...p.destination },
-    palletCount: p.palletCount,
-    weightLbs: p.weightLbs,
-    description: p.description,
+    origin: blankAddress(),
+    destination: blankAddress(),
+    palletCount: 1,
+    weightLbs: 500,
+    description: '',
   };
 }
+
+// Type alias used by AddressFieldset (formerly inferred from PREFILLS).
+type AddressFieldsetValue = ReturnType<typeof blankAddress>;
 
 export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient();
@@ -194,8 +182,8 @@ function AddressFieldset({
   onChange,
 }: {
   label: string;
-  value: typeof PREFILLS[0]['origin'];
-  onChange: (v: typeof PREFILLS[0]['origin']) => void;
+  value: AddressFieldsetValue;
+  onChange: (v: AddressFieldsetValue) => void;
 }) {
   const set = <K extends keyof typeof value>(k: K, v: (typeof value)[K]) => onChange({ ...value, [k]: v });
   const [verify, setVerify] = useState<VerifyState>({ state: 'idle' });
