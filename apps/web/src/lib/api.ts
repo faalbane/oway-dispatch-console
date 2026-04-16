@@ -24,12 +24,12 @@ export class ApiClientError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { ...init?.headers as Record<string, string> };
+  if (init?.body) headers['Content-Type'] = 'application/json';
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ error: { code: 'INTERNAL_ERROR', message: res.statusText } }))) as ApiErrorEnvelope;
