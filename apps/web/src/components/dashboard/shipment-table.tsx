@@ -103,15 +103,9 @@ export function ShipmentTable({ onSelectShipment }: Props) {
           <div className="p-8 text-center text-sm text-ink-subtle">Loading…</div>
         ) : (
           <table className="w-full text-sm table-fixed">
+            {/* Column widths: checkbox 36, ID 70, Status 94, Route flex, Plt 52, Lbs 78, Flags 110, Veh 60 */}
             <colgroup>
-              <col style={{ width: '36px' }} />     {/* checkbox */}
-              <col style={{ width: '70px' }} />     {/* ID */}
-              <col style={{ width: '94px' }} />     {/* Status */}
-              <col />                               {/* Route — flex */}
-              <col style={{ width: '52px' }} />     {/* Plt */}
-              <col style={{ width: '78px' }} />     {/* Lbs */}
-              <col style={{ width: '110px' }} />    {/* Flags */}
-              <col style={{ width: '60px' }} />     {/* Veh */}
+              <col style={{ width: '36px' }} /><col style={{ width: '70px' }} /><col style={{ width: '94px' }} /><col /><col style={{ width: '52px' }} /><col style={{ width: '78px' }} /><col style={{ width: '110px' }} /><col style={{ width: '60px' }} />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-surface-subtle border-b border-line">
               <tr>
@@ -257,8 +251,8 @@ function ShipmentRow({
           <div className="text-[11px] text-ink-subtle truncate mt-0.5 pl-3" title={shipment.description}>{shipment.description}</div>
         )}
       </td>
-      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.palletCount}p</td>
-      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.weightLbs.toLocaleString()} lbs</td>
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.palletCount}</td>
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.weightLbs.toLocaleString()}</td>
       <td className="px-2 py-2.5">
         <div className="flex items-center gap-1 flex-wrap">
           {blocking && (
