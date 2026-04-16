@@ -22,7 +22,7 @@ Open <http://localhost:3000>.
 >
 > **Lockdown applied for the demo** (since the key sits in a public repo): the key is restricted to **only** `geocoding-backend.googleapis.com` and `places.googleapis.com` (so it can't be abused for Maps SDK, Translate, YouTube, etc.), and each of those APIs has a **2,000 requests/day project-level quota cap**. That's plenty for the team to test extensively but caps the blast radius if the key gets scraped — at worst, the dispatch app's autocomplete goes silent for the rest of the day until the quota resets at midnight Pacific. The key lives on an isolated GCP project (`oway-prep`) that will be rotated/disabled after the interview cycle.
 
-Tested against Node 24 / npm 11. Should work on Node ≥ 20.
+Tested on Node 24 / npm 11. Requires Node 20+ (Next.js 15's documented minimum).
 
 ### One-command demo state
 
