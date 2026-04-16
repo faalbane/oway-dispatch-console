@@ -1,8 +1,8 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { api, ApiClientError } from '@/lib/api';
@@ -182,6 +182,12 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
   );
 }
 
+type VerifyState =
+  | { state: 'idle' }
+  | { state: 'loading' }
+  | { state: 'verified'; lat: number; lng: number }
+  | { state: 'failed'; reason?: string };
+
 function AddressFieldset({
   label,
   value,
@@ -192,6 +198,42 @@ function AddressFieldset({
   onChange: (v: typeof PREFILLS[0]['origin']) => void;
 }) {
   const set = <K extends keyof typeof value>(k: K, v: (typeof value)[K]) => onChange({ ...value, [k]: v });
+  const [verify, setVerify] = useState<VerifyState>({ state: 'idle' });
+
+  // Debounced live address verification. Fires 600ms after the user stops
+  // typing, but only when all 4 required fields look valid. Calls Nominatim
+  // via our /geocodes/verify endpoint and surfaces the resolved lat/lng.
+  useEffect(() => {
+    const ready =
+      value.address1.trim().length >= 3 &&
+      value.city.trim().length >= 2 &&
+      value.state.length === 2 &&
+      /^\d{5}(-\d{4})?$/.test(value.zipCode);
+    if (!ready) {
+      setVerify({ state: 'idle' });
+      return;
+    }
+    setVerify({ state: 'loading' });
+    const handle = setTimeout(async () => {
+      try {
+        const res = await api.verifyAddress({
+          address1: value.address1,
+          city: value.city,
+          state: value.state,
+          zipCode: value.zipCode,
+        });
+        if (res.verified && res.lat !== undefined && res.lng !== undefined) {
+          setVerify({ state: 'verified', lat: res.lat, lng: res.lng });
+        } else {
+          setVerify({ state: 'failed', reason: res.reason });
+        }
+      } catch (err) {
+        setVerify({ state: 'failed', reason: String(err) });
+      }
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [value.address1, value.city, value.state, value.zipCode]);
+
   return (
     <fieldset className="space-y-2 border border-line rounded-md p-3">
       <legend className="px-1 text-[11px] uppercase tracking-wider font-semibold text-ink-muted">{label}</legend>
@@ -206,7 +248,42 @@ function AddressFieldset({
         <TextField label="Open" value={value.openTime} onChange={(v) => set('openTime', v)} />
         <TextField label="Close" value={value.closeTime} onChange={(v) => set('closeTime', v)} />
       </div>
+      <VerifyIndicator state={verify} />
     </fieldset>
+  );
+}
+
+function VerifyIndicator({ state }: { state: VerifyState }) {
+  if (state.state === 'idle') {
+    return (
+      <div className="text-[10px] text-ink-subtle italic">
+        Fill the address to verify with OpenStreetMap.
+      </div>
+    );
+  }
+  if (state.state === 'loading') {
+    return (
+      <div className="text-[10px] text-ink-subtle flex items-center gap-1.5">
+        <Loader2 size={11} className="animate-spin" />
+        Verifying address…
+      </div>
+    );
+  }
+  if (state.state === 'verified') {
+    return (
+      <div className="text-[10px] text-emerald-700 flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+        <Check size={11} className="shrink-0" />
+        <span>
+          Verified · <span className="font-mono">{state.lat.toFixed(4)}, {state.lng.toFixed(4)}</span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="text-[10px] text-amber-800 flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+      <AlertCircle size={11} className="shrink-0" />
+      <span>Address not found. You can still save — routes will flag it as ungeocodable.</span>
+    </div>
   );
 }
 

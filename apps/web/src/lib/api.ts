@@ -90,4 +90,10 @@ export const api = {
     request<Array<{ key: string; lat: number | null; lng: number | null; source: string }>>(
       `/geocodes?keys=${encodeURIComponent(keys.join(','))}`,
     ),
+
+  verifyAddress: (addr: { address1: string; city: string; state: string; zipCode: string }) =>
+    request<{ verified: boolean; lat?: number; lng?: number; reason?: string }>(
+      `/geocodes/verify`,
+      { method: 'POST', body: JSON.stringify(addr) },
+    ),
 };
