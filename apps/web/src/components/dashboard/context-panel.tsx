@@ -710,8 +710,18 @@ function DetailAddress({
   );
 }
 
-function RationalePanel({ rationale }: { rationale: import('@oway/shared').RouteRationale }) {
+function RationalePanel({ rationale }: { rationale?: import('@oway/shared').RouteRationale }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Old cached routes (computed before rationale was added) won't have this field.
+  if (!rationale) {
+    return (
+      <div className="mt-2 pt-2 border-t border-line/60 text-[11px] text-ink-subtle italic">
+        Recompute the route to see the ordering rationale.
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2 pt-2 border-t border-line/60">
       <button
