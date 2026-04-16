@@ -12,6 +12,7 @@
     "build": "npm run build -w @oway/shared && npm run build -w @oway/api && npm run build -w @oway/web",
     "test": "npm run test -w @oway/api",
     "seed": "npm run seed -w @oway/api",
+    "demo": "npm run db:reset -w @oway/api && tsx scripts/setup-demo.ts",
     "geocode": "tsx scripts/geocode.ts",
     "db:reset": "npm run db:reset -w @oway/api",
     "typecheck": "npm run typecheck -w @oway/shared && npm run typecheck -w @oway/api && npm run typecheck -w @oway/web"

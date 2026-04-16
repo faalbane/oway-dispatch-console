@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx src/seed.ts",
-    "db:reset": "rm -f prisma/dev.db && prisma db push --force-reset --skip-generate && tsx src/seed.ts",
+    "db:reset": "rm -f prisma/dev.db && prisma generate && prisma db push --force-reset --skip-generate && tsx src/seed.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },
