@@ -27,7 +27,13 @@ export default async function geocodeRoutes(app: FastifyInstance) {
     const addr = VerifySchema.parse(req.body);
     const result = await ensureGeocoded(addr);
     if (result) {
-      return { verified: true, lat: result.lat, lng: result.lng };
+      return {
+        verified: true,
+        lat: result.lat,
+        lng: result.lng,
+        source: result.source,
+        formattedAddress: result.formattedAddress,
+      };
     }
     return { verified: false, reason: 'address could not be geocoded' };
   });

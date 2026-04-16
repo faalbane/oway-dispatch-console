@@ -92,8 +92,12 @@ export const api = {
     ),
 
   verifyAddress: (addr: { address1: string; city: string; state: string; zipCode: string }) =>
-    request<{ verified: boolean; lat?: number; lng?: number; reason?: string }>(
-      `/geocodes/verify`,
-      { method: 'POST', body: JSON.stringify(addr) },
-    ),
+    request<{
+      verified: boolean;
+      lat?: number;
+      lng?: number;
+      source?: 'google' | 'nominatim' | 'cache';
+      formattedAddress?: string;
+      reason?: string;
+    }>(`/geocodes/verify`, { method: 'POST', body: JSON.stringify(addr) }),
 };

@@ -185,7 +185,7 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
 type VerifyState =
   | { state: 'idle' }
   | { state: 'loading' }
-  | { state: 'verified'; lat: number; lng: number }
+  | { state: 'verified'; lat: number; lng: number; source?: 'google' | 'nominatim' | 'cache'; formattedAddress?: string }
   | { state: 'failed'; reason?: string };
 
 function AddressFieldset({
@@ -223,7 +223,13 @@ function AddressFieldset({
           zipCode: value.zipCode,
         });
         if (res.verified && res.lat !== undefined && res.lng !== undefined) {
-          setVerify({ state: 'verified', lat: res.lat, lng: res.lng });
+          setVerify({
+            state: 'verified',
+            lat: res.lat,
+            lng: res.lng,
+            source: res.source,
+            formattedAddress: res.formattedAddress,
+          });
         } else {
           setVerify({ state: 'failed', reason: res.reason });
         }
@@ -270,12 +276,25 @@ function VerifyIndicator({ state }: { state: VerifyState }) {
     );
   }
   if (state.state === 'verified') {
+    const sourceLabel =
+      state.source === 'google' ? 'Google Maps'
+      : state.source === 'nominatim' ? 'OpenStreetMap'
+      : state.source === 'cache' ? 'cache'
+      : '';
     return (
-      <div className="text-[10px] text-emerald-700 flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
-        <Check size={11} className="shrink-0" />
-        <span>
-          Verified · <span className="font-mono">{state.lat.toFixed(4)}, {state.lng.toFixed(4)}</span>
-        </span>
+      <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 space-y-0.5">
+        <div className="flex items-center gap-1.5">
+          <Check size={11} className="shrink-0" />
+          <span>
+            Verified{sourceLabel ? ` by ${sourceLabel}` : ''} ·{' '}
+            <span className="font-mono">{state.lat.toFixed(4)}, {state.lng.toFixed(4)}</span>
+          </span>
+        </div>
+        {state.formattedAddress && (
+          <div className="text-[10px] text-emerald-800 pl-4">
+            Resolved to: <span className="italic">{state.formattedAddress}</span>
+          </div>
+        )}
       </div>
     );
   }
