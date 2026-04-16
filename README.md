@@ -18,7 +18,9 @@ npm run dev           # boots API (:3001) and web (:3000) concurrently
 
 Open <http://localhost:3000>.
 
-> **Reviewer convenience: hardcoded Google Maps API key.** A Google Maps API key is baked into `apps/api/src/lib/geocode-on-demand.ts` as a fallback so address autocomplete, geocoding verification, and Place Details "just work" the moment you run the app — no GCP setup required. **This would never ship in production**: real deployments inject the key via env var (Secret Manager / equivalent), restrict it to specific APIs and origins, and rotate it periodically. The key in source is on an isolated GCP project (`oway-prep`) and will be rotated after the interview cycle. To override locally, set `GOOGLE_MAPS_API_KEY` in `apps/api/.env` and the env var wins.
+> **Reviewer convenience: hardcoded Google Maps API key.** A Google Maps API key is baked into `apps/api/src/lib/geocode-on-demand.ts` as a fallback so address autocomplete, geocoding verification, and Place Details "just work" the moment you run the app — no GCP setup required. **This would never ship in production**: real deployments inject the key via env var (Secret Manager / equivalent), pair it with origin/IP restrictions and rotation. To override locally, set `GOOGLE_MAPS_API_KEY` in `apps/api/.env` and the env var wins.
+>
+> **Lockdown applied for the demo** (since the key sits in a public repo): the key is restricted to **only** `geocoding-backend.googleapis.com` and `places.googleapis.com` (so it can't be abused for Maps SDK, Translate, YouTube, etc.), and each of those APIs has a **2,000 requests/day project-level quota cap**. That's plenty for the team to test extensively but caps the blast radius if the key gets scraped — at worst, the dispatch app's autocomplete goes silent for the rest of the day until the quota resets at midnight Pacific. The key lives on an isolated GCP project (`oway-prep`) that will be rotated/disabled after the interview cycle.
 
 Tested against Node 24 / npm 11. Should work on Node ≥ 20.
 
