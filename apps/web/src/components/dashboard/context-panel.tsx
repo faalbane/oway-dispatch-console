@@ -376,7 +376,7 @@ function addressKey(a: { address1: string; city: string; state: string; zipCode:
 
 function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const { focusVehicle } = useDispatch();
+  const { focusVehicle, clearSelection } = useDispatch();
   const { data: shipment, isLoading } = useQuery({
     queryKey: ['shipment', shipmentId],
     queryFn: () => api.getShipment(shipmentId),
@@ -503,6 +503,17 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
         )}
 
+        {/* Inline vehicle assignment for unassigned shipments */}
+        {shipment.status === 'INITIALIZED' && <InlineAssign shipment={shipment} onAssigned={(vid) => {
+          queryClient.invalidateQueries({ queryKey: ['shipment', shipmentId] });
+          queryClient.invalidateQueries({ queryKey: ['shipments'] });
+          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          queryClient.invalidateQueries({ queryKey: ['route'] });
+          setError(null);
+          onClose();
+          focusVehicle(vid);
+        }} />}
+
         <div className="flex items-center gap-2 pt-3 border-t border-line">
           <span className="text-[11px] uppercase tracking-wider font-semibold text-ink-muted mr-2">
             Progress
@@ -525,11 +536,89 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
             <span className="text-xs text-ink-subtle">
               {nextStatuses(shipment.status).length === 0
                 ? 'Terminal status — no further transitions'
-                : 'Use the assignment flow to assign this shipment to a vehicle'}
+                : null}
             </span>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function InlineAssign({ shipment, onAssigned }: { shipment: Shipment; onAssigned: (vehicleId: string) => void }) {
+  const { data: vehicles } = useQuery({ queryKey: ['vehicles'], queryFn: () => api.listVehicles() });
+  const [picked, setPicked] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const assignMutation = useMutation({
+    mutationFn: () => api.assign({ vehicleId: picked!, shipmentIds: [shipment.id] }),
+    onSuccess: (data) => {
+      if (data.accessorialWarnings?.length > 0) {
+        const warns = data.accessorialWarnings.map(
+          (w) => `${w.shipmentId} needs ${w.missing.join(', ')}`,
+        ).join('; ');
+        console.warn('Accessorial warnings:', warns);
+      }
+      onAssigned(data.vehicleId);
+    },
+    onError: (err) => {
+      if (err instanceof ApiClientError) setError(err.body.error.message);
+      else setError(String(err));
+    },
+  });
+
+  const hasBlocking = shipment.dataIssues.some((i) => i.severity === 'blocking');
+
+  return (
+    <div className="pt-3 border-t border-line space-y-2">
+      <div className="text-[11px] uppercase tracking-wider font-semibold text-ink-muted">
+        Assign to vehicle
+      </div>
+      {hasBlocking ? (
+        <div className="text-xs text-red-600">Resolve blocking data issues before assigning.</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {vehicles?.map((v) => {
+              const projP = v.loadPallets + shipment.palletCount;
+              const projW = v.loadWeightLbs + shipment.weightLbs;
+              const overflow = projP > v.maxPallets || projW > v.maxWeightLbs;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setPicked(v.id)}
+                  disabled={overflow}
+                  className={cn(
+                    'rounded-md border p-2 text-left text-xs transition-colors',
+                    picked === v.id ? 'border-indigo-400 bg-indigo-50' : 'border-line hover:border-line-strong',
+                    overflow && 'opacity-40 cursor-not-allowed',
+                  )}
+                >
+                  <div className="font-mono font-semibold">{v.id}</div>
+                  <div className="text-[10px] text-ink-subtle mt-0.5">
+                    {v.loadPallets}/{v.maxPallets}p · {Math.round(v.loadWeightLbs / 1000)}k/{Math.round(v.maxWeightLbs / 1000)}k lbs
+                  </div>
+                  {overflow && <div className="text-[10px] text-red-500 mt-0.5">No room</div>}
+                </button>
+              );
+            })}
+          </div>
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">{error}</div>
+          )}
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full"
+            disabled={!picked || assignMutation.isPending}
+            onClick={() => assignMutation.mutate()}
+          >
+            {assignMutation.isPending && <Loader2 size={12} className="animate-spin" />}
+            Assign to {picked ?? '...'}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

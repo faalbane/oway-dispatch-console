@@ -104,8 +104,21 @@ async function main() {
   const r3 = await post('/vehicles/VH003/route');
   console.log(`  route: ${r3?.stops?.length} stops, ${r3?.score?.totalDistanceMi} mi (${r3?.distanceSource})\n`);
 
+  // ── Demonstrate DELIVERED + CANCELLED statuses (spec req 1: visually distinct) ──
+  console.log('Status variety — progressing two shipments to terminal states');
+  // Assign two shipments to VH004, progress them, then leave VH004 empty again
+  await post('/assignments', { vehicleId: 'VH004', shipmentIds: ['SHP012', 'SHP014'] });
+  // SHP012 → fully delivered lifecycle
+  await patch('/shipments/SHP012/status', { to: 'PICKED_UP' });
+  await patch('/shipments/SHP012/status', { to: 'DELIVERED' });
+  console.log('  SHP012 → DELIVERED (opacity + strike-through in table)');
+  // SHP014 → cancelled
+  await patch('/shipments/SHP014/status', { to: 'CANCELLED' });
+  console.log('  SHP014 → CANCELLED (opacity + strike-through in table)');
+  console.log('  VH004 capacity freed (both terminal = off truck)\n');
+
   // ── VH004: dry_van (14 pallets / 20,000 lbs) — empty for user testing ──
-  console.log('VH004 — left empty for manual assignment testing\n');
+  console.log('VH004 — empty (delivered/cancelled freed capacity), ready for manual assignment\n');
 
   // ── Summary ──────────────────────────────────────────────────────────────
   console.log('═══ Demo ready ═══');

@@ -31,9 +31,16 @@ function Dashboard() {
     [focusVehicle],
   );
 
+  // Vehicle click clears shipment detail
   useEffect(() => {
     if (focusedVehicleId) setDetailId(null);
   }, [focusedVehicleId]);
+
+  // Checking boxes = entering assignment mode — clear detail so
+  // the assignment form surfaces immediately.
+  useEffect(() => {
+    if (selectedShipmentIds.size > 0) setDetailId(null);
+  }, [selectedShipmentIds]);
 
   const { data: allShipments } = useQuery({
     queryKey: ['shipments', { __all: true }],
