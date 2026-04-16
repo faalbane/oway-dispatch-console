@@ -163,6 +163,23 @@ We're explicitly not minimizing distance alone. The spec invites this question; 
 
 The score function is in `domain/routing.ts:scoreRoute`. Tweak the weights in `packages/shared/src/constants.ts:ROUTING_DEFAULTS`.
 
+### Accessorial handling
+
+Seed shipments carry four accessorial flags: `liftgate`, `appointment`, `limited_access`, `hazmat`. Each is a real-world dispatcher concern; here's what this build does with each:
+
+| Accessorial | Treatment |
+| --- | --- |
+| `hazmat` | Visible as a red pill on the row; **used by routing** — adjacent hazmat stops get a clustering bonus in the scoring function (amortizes the per-stop protocol overhead). |
+| `liftgate` | Visible as a pill. Informational — real impl would prefer vehicles equipped with a liftgate, but we don't model vehicle capabilities. |
+| `appointment` | Visible as a pill. Informational — implies a tighter delivery window in practice; the existing time-window penalty already handles the ordering consequence. |
+| `limited_access` | Visible as a pill. Informational — real impl would avoid routing oversized vehicles (SHP010: "no trucks over 26ft"). Surfaced to the dispatcher via the address `notes` callout. |
+
+The `notes` field on individual addresses (SHP007, SHP010, SHP034) carries driver-critical caveats and renders as an amber callout in the detail drawer, the route stop list, and the map popup. Drivers need to see these before arriving.
+
+### Concurrency
+
+Assignment uses a Prisma interactive transaction so the read-validate-write sequence is atomic within one request. Under SQLite (the default), all writes are globally serialized, so concurrent assignments can't race past capacity. Under Postgres, full safety would also want `SELECT ... FOR UPDATE` on the vehicle row (or optimistic concurrency with a version column). The shape of the fix is one line in the transaction; the contract of the service doesn't change. Called out here so it's not a surprise in the follow-up.
+
 ### Why not OR-Tools / off-the-shelf solvers
 
 40 shipments × 4 vehicles is small enough that OR-Tools would solve to optimality in seconds. So why not use it?
