@@ -58,6 +58,8 @@ export const api = {
     request<Shipment>('/shipments', { method: 'POST', body: JSON.stringify(input) }),
   transitionStatus: (id: string, to: ShipmentStatus) =>
     request<Shipment>(`/shipments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ to }) }),
+  overrideStatus: (id: string, to: ShipmentStatus) =>
+    request<Shipment>(`/shipments/${id}/override-status`, { method: 'POST', body: JSON.stringify({ to }) }),
 
   listVehicles: () => request<VehicleWithLoad[]>('/vehicles'),
   getVehicleWorkload: (id: string) =>

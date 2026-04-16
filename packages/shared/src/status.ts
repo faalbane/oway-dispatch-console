@@ -38,3 +38,20 @@ export function isTerminal(status: ShipmentStatus): boolean {
 export function isActiveAssignment(status: ShipmentStatus): boolean {
   return status === 'ASSIGNED' || status === 'PICKED_UP';
 }
+
+/**
+ * Revert transitions — explicit overrides for the rare case ops marks a
+ * status by mistake. Kept separate from `nextStatuses` so the UI can present
+ * them as a distinct "undo" affordance, not a normal forward step.
+ *
+ *   DELIVERED → PICKED_UP   ("I marked it delivered too early")
+ *   CANCELLED → INITIALIZED ("I cancelled it by mistake")
+ *
+ * No revert from PICKED_UP — there's no "un-pickup" gesture in real ops; the
+ * truck either has it or doesn't. PICKED_UP can still be CANCELLED forward.
+ */
+export function revertStatus(from: ShipmentStatus): ShipmentStatus | null {
+  if (from === 'DELIVERED') return 'PICKED_UP';
+  if (from === 'CANCELLED') return 'INITIALIZED';
+  return null;
+}

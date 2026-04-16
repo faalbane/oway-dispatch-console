@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { CreateShipmentSchema, ShipmentStatusSchema, UpdateStatusSchema } from '@oway/shared';
 import { z } from 'zod';
-import { createShipment, getShipment, listShipments, transitionStatus } from '../services/shipment.service.js';
+import { createShipment, getShipment, listShipments, overrideStatus, transitionStatus } from '../services/shipment.service.js';
 
 const ListQuerySchema = z.object({
   status: ShipmentStatusSchema.optional(),
@@ -33,5 +33,11 @@ export default async function shipmentRoutes(app: FastifyInstance) {
     const { id } = z.object({ id: z.string() }).parse(req.params);
     const { to } = UpdateStatusSchema.parse(req.body);
     return transitionStatus(id, to);
+  });
+
+  app.post('/shipments/:id/override-status', async (req) => {
+    const { id } = z.object({ id: z.string() }).parse(req.params);
+    const { to } = UpdateStatusSchema.parse(req.body);
+    return overrideStatus(id, to);
   });
 }

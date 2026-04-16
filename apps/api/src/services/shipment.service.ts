@@ -74,6 +74,44 @@ export async function transitionStatus(id: string, to: ShipmentStatus): Promise<
   return deserializeShipment(updated as Parameters<typeof deserializeShipment>[0]);
 }
 
+/**
+ * Override a shipment's status to any value, bypassing the forward-only
+ * state machine. For ops mistakes — "I marked it delivered but it wasn't",
+ * "this should never have been cancelled", etc. Distinct from transitionStatus
+ * so the audit story is clear: this is a manual override, not a normal flow.
+ *
+ * Side effects:
+ *   - to=INITIALIZED: clears vehicleId (shipment is unassigned)
+ *   - to=ASSIGNED but no vehicleId: rejected (use the assignment flow)
+ *   - leaving ASSIGNED/PICKED_UP on a vehicle: invalidates that vehicle's route
+ */
+export async function overrideStatus(id: string, to: ShipmentStatus): Promise<Shipment> {
+  const row = await prisma.shipment.findUnique({ where: { id } });
+  if (!row) throw new ApiError(404, 'NOT_FOUND', `Shipment ${id} not found`);
+
+  const from = row.status as ShipmentStatus;
+  if (from === to) return deserializeShipment(row);
+
+  if (to === 'ASSIGNED' && !row.vehicleId) {
+    throw new ApiError(409, 'INVALID_STATUS_TRANSITION', `Cannot mark ${id} ASSIGNED without a vehicle — use the assignment flow`);
+  }
+
+  // INITIALIZED implies no vehicle; clear it.
+  const data: { status: ShipmentStatus; vehicleId?: null } = { status: to };
+  if (to === 'INITIALIZED') data.vehicleId = null;
+
+  // Any change that affects what's on the truck invalidates its computed route.
+  const shouldInvalidateRoute = !!row.vehicleId;
+
+  const [updated] = await prisma.$transaction([
+    prisma.shipment.update({ where: { id }, data }),
+    ...(shouldInvalidateRoute
+      ? [prisma.route.deleteMany({ where: { vehicleId: row.vehicleId! } })]
+      : []),
+  ]);
+  return deserializeShipment(updated as Parameters<typeof deserializeShipment>[0]);
+}
+
 export async function createShipment(input: CreateShipmentInput): Promise<Shipment> {
   // Generate a sequential-looking ID for new shipments.
   const last = await prisma.shipment.findFirst({

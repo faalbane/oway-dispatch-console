@@ -11,7 +11,7 @@ import { fmtAddressFull, fmtTime, fmtTimeRange } from '@/lib/format';
 import { CapacityBar } from '@/components/ui/progress';
 import { useState } from 'react';
 import type { Shipment, ShipmentStatus } from '@oway/shared';
-import { nextStatuses } from '@oway/shared';
+import { nextStatuses, SHIPMENT_STATUSES } from '@oway/shared';
 import { cn } from '@/lib/cn';
 
 const RouteMap = dynamic(() => import('./route-map').then((m) => m.RouteMap), {
@@ -396,21 +396,27 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
 
   const [error, setError] = useState<string | null>(null);
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['shipment', shipmentId] });
+    queryClient.invalidateQueries({ queryKey: ['shipments'] });
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
+    queryClient.invalidateQueries({ queryKey: ['route'] });
+  };
+
   const transitionMutation = useMutation({
     mutationFn: (to: ShipmentStatus) => api.transitionStatus(shipmentId, to),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipment', shipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
-      queryClient.invalidateQueries({ queryKey: ['route'] });
-      setError(null);
-    },
-    onError: (err) => {
-      if (err instanceof ApiClientError) setError(err.body.error.message);
-      else setError(String(err));
-    },
+    onSuccess: () => { invalidateAll(); setError(null); },
+    onError: (err) => setError(err instanceof ApiClientError ? err.body.error.message : String(err)),
   });
+
+  const overrideMutation = useMutation({
+    mutationFn: (to: ShipmentStatus) => api.overrideStatus(shipmentId, to),
+    onSuccess: () => { invalidateAll(); setError(null); },
+    onError: (err) => setError(err instanceof ApiClientError ? err.body.error.message : String(err)),
+  });
+
+  const [showOverride, setShowOverride] = useState(false);
 
   if (isLoading || !shipment) {
     return <div className="p-8 text-sm text-ink-subtle">Loading…</div>;
@@ -538,6 +544,45 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
                 ? 'Terminal status — no further transitions'
                 : null}
             </span>
+          )}
+        </div>
+
+        {/* Override: change status to anything (admin escape hatch for mistakes) */}
+        <div className="pt-2 border-t border-line/60">
+          {!showOverride ? (
+            <button
+              type="button"
+              onClick={() => setShowOverride(true)}
+              className="text-[11px] text-ink-subtle hover:text-ink-muted underline underline-offset-2"
+            >
+              Override status (mistake fix)
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-amber-700">
+                Override status
+              </div>
+              <div className="text-[10px] text-ink-subtle">
+                Bypasses normal lifecycle. Use only to correct mistakes.
+                {shipment.vehicleId && ' Will invalidate the vehicle\'s computed route.'}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {SHIPMENT_STATUSES.filter((s) => s !== shipment.status && !(s === 'ASSIGNED' && !shipment.vehicleId)).map((s) => (
+                  <Button
+                    key={s}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => overrideMutation.mutate(s)}
+                    disabled={overrideMutation.isPending}
+                  >
+                    {s.replace('_', ' ')}
+                  </Button>
+                ))}
+                <Button variant="ghost" size="sm" onClick={() => setShowOverride(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
