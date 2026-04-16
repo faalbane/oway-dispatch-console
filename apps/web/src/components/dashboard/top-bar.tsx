@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, MapPin, Plus } from 'lucide-react';
+import { AlertTriangle, LayoutDashboard, MapPin, Plus, Truck } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -47,6 +48,12 @@ export function TopBar() {
             <span className="text-ink-subtle">· {depot.city}, {depot.state}</span>
           </div>
         )}
+
+        {/* Nav */}
+        <nav className="flex items-center gap-1 ml-4">
+          <NavLink href="/" icon={<LayoutDashboard size={12} />} label="Dispatch" active />
+          <NavLink href="/fleet" icon={<Truck size={12} />} label="Fleet" />
+        </nav>
       </div>
 
       <div className="flex items-center gap-2">
@@ -70,5 +77,19 @@ export function TopBar() {
       <DataIssuesDialog open={showIssues} onOpenChange={setShowIssues} />
       <NewShipmentDialog open={showNew} onOpenChange={setShowNew} />
     </header>
+  );
+}
+
+function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+        active ? 'bg-slate-900 text-white' : 'text-ink-muted hover:bg-surface-muted'
+      }`}
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }
