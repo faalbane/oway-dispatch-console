@@ -234,13 +234,18 @@ function ShipmentRow({
       <td className="px-3 py-2.5">
         <StatusBadge status={shipment.status} />
       </td>
-      <td className="px-2 py-2.5 max-w-0">
-        <div className="text-xs text-ink truncate" title={`${fmtAddress(shipment.origin)} → ${fmtAddress(shipment.destination)}`}>
-          <span className="font-medium">{fmtAddress(shipment.origin)}</span>
-          <span className="text-ink-subtle"> → </span>
-          <span className="font-medium">{fmtAddress(shipment.destination)}</span>
+      <td className="px-2 py-2 max-w-0">
+        <div className="flex items-center gap-1.5 text-xs text-ink truncate" title={fmtAddress(shipment.origin)}>
+          <span className="shrink-0 inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="font-medium truncate">{fmtAddress(shipment.origin)}</span>
         </div>
-        <div className="text-[11px] text-ink-subtle truncate" title={shipment.description}>{shipment.description}</div>
+        <div className="flex items-center gap-1.5 text-xs text-ink truncate mt-0.5" title={fmtAddress(shipment.destination)}>
+          <span className="shrink-0 inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="font-medium truncate">{fmtAddress(shipment.destination)}</span>
+        </div>
+        {shipment.description && (
+          <div className="text-[11px] text-ink-subtle truncate mt-0.5 pl-3" title={shipment.description}>{shipment.description}</div>
+        )}
       </td>
       <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.palletCount}p</td>
       <td className="px-2 py-2.5 text-right font-mono tabular-nums text-xs whitespace-nowrap">{shipment.weightLbs.toLocaleString()} lbs</td>
