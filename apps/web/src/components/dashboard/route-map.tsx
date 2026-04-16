@@ -55,7 +55,7 @@ export function RouteMap({ route, depot }: Props) {
   ];
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full isolate relative">
       <MapContainer
         center={[depot.latitude, depot.longitude]}
         zoom={10}
@@ -92,6 +92,14 @@ export function RouteMap({ route, depot }: Props) {
                 <div className="pt-1 border-t border-slate-200 mt-1">
                   Arrive {s.etaArrival} · Window {s.address.openTime}–{s.address.closeTime}
                 </div>
+                {s.address.notes && (
+                  <div
+                    className="mt-1.5 rounded bg-amber-50 border border-amber-200 px-1.5 py-1 text-amber-800"
+                    style={{ fontSize: 11 }}
+                  >
+                    ⚠ {s.address.notes}
+                  </div>
+                )}
               </div>
             </Popup>
           </Marker>

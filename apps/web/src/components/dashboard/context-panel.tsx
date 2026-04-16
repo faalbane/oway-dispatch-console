@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Compass, Loader2, RotateCcw, X } from 'lucide-react';
+import { Compass, Info, Loader2, RotateCcw, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ function EmptyContext() {
 }
 
 function SelectionContext({ shipments, onClear }: { shipments: Shipment[]; onClear: () => void }) {
-  const { focusedVehicleId } = useDispatch();
+  const { focusedVehicleId, focusVehicle } = useDispatch();
   const queryClient = useQueryClient();
   const { data: vehicles } = useQuery({ queryKey: ['vehicles'], queryFn: () => api.listVehicles() });
   const [pickedVehicle, setPickedVehicle] = useState<string | null>(focusedVehicleId);
@@ -63,11 +63,18 @@ function SelectionContext({ shipments, onClear }: { shipments: Shipment[]; onCle
 
   const assignMutation = useMutation({
     mutationFn: () => api.assign({ vehicleId: pickedVehicle!, shipmentIds: shipments.map((s) => s.id) }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
+      // Route is invalidated server-side on any assignment change; refetch so
+      // the map clears rather than showing stale stops from the old plan.
+      queryClient.invalidateQueries({ queryKey: ['route'] });
       onClear();
       setError(null);
+      // Focus the vehicle the user just assigned to — prevents the right rail
+      // from snapping to the empty state after a successful assignment.
+      focusVehicle(data.vehicleId);
     },
     onError: (err) => {
       if (err instanceof ApiClientError) setError(err.body.error.message);
@@ -168,6 +175,8 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
       queryClient.invalidateQueries({ queryKey: ['vehicle-workload', vehicleId] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      // Unassignment invalidates the route server-side; refetch.
+      queryClient.invalidateQueries({ queryKey: ['route', vehicleId] });
     },
   });
 
@@ -296,6 +305,12 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
                       <span className="ml-2 text-amber-600 font-medium">TIGHT</span>
                     )}
                   </div>
+                  {s.address.notes && (
+                    <div className="mt-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11px] text-amber-800 flex items-start gap-1.5">
+                      <Info size={11} className="shrink-0 mt-0.5" />
+                      <span>{s.address.notes}</span>
+                    </div>
+                  )}
                 </div>
               </li>
             ))}

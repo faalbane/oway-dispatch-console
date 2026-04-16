@@ -59,11 +59,18 @@ export async function transitionStatus(id: string, to: ShipmentStatus): Promise<
     throw new ApiError(409, 'INVALID_STATUS_TRANSITION', `Cannot mark ${id} ASSIGNED without a vehicle`);
   }
 
-  const updated = await prisma.shipment.update({
-    where: { id },
-    data: { status: to },
-  });
-  return deserializeShipment(updated);
+  // Cancelling an assigned shipment invalidates its vehicle's computed route.
+  // (DELIVERED/PICKED_UP don't — the planned stops are still correct, just some
+  // have been completed.)
+  const shouldInvalidateRoute = to === 'CANCELLED' && !!row.vehicleId;
+
+  const [updated] = await prisma.$transaction([
+    prisma.shipment.update({ where: { id }, data: { status: to } }),
+    ...(shouldInvalidateRoute
+      ? [prisma.route.deleteMany({ where: { vehicleId: row.vehicleId! } })]
+      : []),
+  ]);
+  return deserializeShipment(updated as Parameters<typeof deserializeShipment>[0]);
 }
 
 export async function createShipment(input: CreateShipmentInput): Promise<Shipment> {

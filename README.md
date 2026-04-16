@@ -20,11 +20,22 @@ npm run dev           # boots API (:3001) and web (:3000) concurrently
 
 Open <http://localhost:3000>.
 
-> **Why no Docker?** Defaulting to SQLite + Prisma keeps the `git clone → npm install → npm run dev`
-> path honest. A `docker-compose.yml` for Postgres would be more "prod-flavored," but introduces
-> install friction for the reviewer. The DB layer is one provider line away from Postgres if you want it.
+> **Why SQLite by default?** Zero install friction for the reviewer — `git clone → npm install → npm run dev`
+> just works. A `docker-compose.yml` ships alongside for anyone who wants Postgres (4-step swap documented in that file).
 
 Tested against Node 24 / npm 11. Should work on Node ≥ 20.
+
+### Postgres (optional)
+
+```bash
+docker compose up -d
+# Edit apps/api/prisma/schema.prisma → provider = "postgresql"
+# Edit apps/api/.env → DATABASE_URL="postgresql://oway:oway@localhost:5432/oway_dispatch"
+npm run db:reset
+npm run dev
+```
+
+Full instructions are in `docker-compose.yml`.
 
 ### Useful scripts
 

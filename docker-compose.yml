@@ -1,0 +1,40 @@
+# Postgres alternative to the default SQLite setup.
+#
+# The app runs against SQLite out of the box (zero-friction for reviewers). This
+# compose file is here for anyone who wants a more prod-flavored environment.
+#
+# To switch from SQLite to Postgres:
+#
+#   1. docker compose up -d
+#   2. In apps/api/prisma/schema.prisma, change the datasource provider:
+#        provider = "sqlite"       →   provider = "postgresql"
+#   3. In apps/api/.env, replace:
+#        DATABASE_URL="file:./dev.db"
+#      with:
+#        DATABASE_URL="postgresql://oway:oway@localhost:5432/oway_dispatch"
+#   4. npm run db:reset   # drops, pushes schema, re-seeds
+#
+# No other code changes required — Prisma's query layer is identical across
+# both providers for this schema.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oway-postgres
+    environment:
+      POSTGRES_USER: oway
+      POSTGRES_PASSWORD: oway
+      POSTGRES_DB: oway_dispatch
+    ports:
+      - '5432:5432'
+    volumes:
+      - oway_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U oway -d oway_dispatch']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  oway_pgdata:

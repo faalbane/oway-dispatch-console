@@ -1,7 +1,22 @@
-import type { Shipment, Vehicle, VehicleType, VehicleWithLoad } from '@oway/shared';
+import type { Shipment, Vehicle, VehicleType, VehicleWithLoad, ShipmentStatus } from '@oway/shared';
+import { isActiveAssignment } from '@oway/shared';
 import { prisma } from '../db.js';
 import { ApiError } from '../lib/api-error.js';
 import { deserializeShipment } from '../lib/serialize.js';
+
+/**
+ * Capacity accounting: only ACTIVE (ASSIGNED | PICKED_UP) shipments count
+ * toward a vehicle's current load. A DELIVERED shipment is off the truck; a
+ * CANCELLED one was never picked up (or was returned). Both free the slot.
+ */
+function activeLoad(shipments: { status: string; palletCount: number; weightLbs: number; id: string }[]) {
+  const active = shipments.filter((s) => isActiveAssignment(s.status as ShipmentStatus));
+  return {
+    loadPallets: active.reduce((sum, s) => sum + s.palletCount, 0),
+    loadWeightLbs: active.reduce((sum, s) => sum + s.weightLbs, 0),
+    activeIds: active.map((s) => s.id),
+  };
+}
 
 export async function listVehiclesWithLoad(): Promise<VehicleWithLoad[]> {
   const vehicles = await prisma.vehicle.findMany({
@@ -10,14 +25,13 @@ export async function listVehiclesWithLoad(): Promise<VehicleWithLoad[]> {
   });
 
   return vehicles.map((v) => {
-    const loadPallets = v.shipments.reduce((sum, s) => sum + s.palletCount, 0);
-    const loadWeightLbs = v.shipments.reduce((sum, s) => sum + s.weightLbs, 0);
+    const { loadPallets, loadWeightLbs, activeIds } = activeLoad(v.shipments);
     return {
       id: v.id,
       type: v.type as VehicleType,
       maxPallets: v.maxPallets,
       maxWeightLbs: v.maxWeightLbs,
-      assignedShipmentIds: v.shipments.map((s) => s.id),
+      assignedShipmentIds: activeIds,
       loadPallets,
       loadWeightLbs,
       remainingPallets: v.maxPallets - loadPallets,
@@ -33,8 +47,12 @@ export async function getVehicleWorkload(vehicleId: string): Promise<{ vehicle: 
   });
   if (!v) throw new ApiError(404, 'NOT_FOUND', `Vehicle ${vehicleId} not found`);
 
-  const loadPallets = v.shipments.reduce((sum, s) => sum + s.palletCount, 0);
-  const loadWeightLbs = v.shipments.reduce((sum, s) => sum + s.weightLbs, 0);
+  const { loadPallets, loadWeightLbs, activeIds } = activeLoad(v.shipments);
+
+  // The workload endpoint returns *active* shipments only — what's currently
+  // on the truck. Historical (delivered/cancelled) shipments can be found via
+  // GET /shipments?vehicleId=X instead.
+  const active = v.shipments.filter((s) => isActiveAssignment(s.status as ShipmentStatus));
 
   return {
     vehicle: {
@@ -42,13 +60,13 @@ export async function getVehicleWorkload(vehicleId: string): Promise<{ vehicle: 
       type: v.type as VehicleType,
       maxPallets: v.maxPallets,
       maxWeightLbs: v.maxWeightLbs,
-      assignedShipmentIds: v.shipments.map((s) => s.id),
+      assignedShipmentIds: activeIds,
       loadPallets,
       loadWeightLbs,
       remainingPallets: v.maxPallets - loadPallets,
       remainingWeightLbs: v.maxWeightLbs - loadWeightLbs,
     },
-    shipments: v.shipments.map(deserializeShipment),
+    shipments: active.map(deserializeShipment),
   };
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canTransition, isTerminal, nextStatuses } from '@oway/shared';
+import { canTransition, isActiveAssignment, isTerminal, nextStatuses } from '@oway/shared';
 
 describe('status state machine', () => {
   it('allows the documented happy path', () => {
@@ -44,5 +44,24 @@ describe('status state machine', () => {
     expect(new Set(nextStatuses('INITIALIZED'))).toEqual(new Set(['ASSIGNED', 'CANCELLED']));
     expect(new Set(nextStatuses('PICKED_UP'))).toEqual(new Set(['DELIVERED', 'CANCELLED']));
     expect(nextStatuses('DELIVERED')).toEqual([]);
+  });
+});
+
+describe('isActiveAssignment', () => {
+  it('treats ASSIGNED and PICKED_UP as actively consuming capacity', () => {
+    expect(isActiveAssignment('ASSIGNED')).toBe(true);
+    expect(isActiveAssignment('PICKED_UP')).toBe(true);
+  });
+
+  it('treats DELIVERED and CANCELLED as freeing capacity', () => {
+    // Regression: before this fix, DELIVERED shipments kept counting toward
+    // vehicle load, so a truck that had delivered its full capacity earlier
+    // in the day couldn't take new freight.
+    expect(isActiveAssignment('DELIVERED')).toBe(false);
+    expect(isActiveAssignment('CANCELLED')).toBe(false);
+  });
+
+  it('treats INITIALIZED as not-yet-assigned (no vehicle load)', () => {
+    expect(isActiveAssignment('INITIALIZED')).toBe(false);
   });
 });

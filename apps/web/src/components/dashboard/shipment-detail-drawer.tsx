@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, X } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge, Pill } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,10 @@ export function ShipmentDetailDrawer({ shipmentId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['shipment', shipmentId] });
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
+      // CANCEL invalidates the vehicle's route server-side; DELIVERED/PICKED_UP
+      // leave the route alone. Refetch regardless to keep the UI truthful.
+      queryClient.invalidateQueries({ queryKey: ['route'] });
       setError(null);
     },
     onError: (err) => {
@@ -114,20 +118,29 @@ export function ShipmentDetailDrawer({ shipmentId, onClose }: Props) {
               <span className="text-[11px] uppercase tracking-wider font-semibold text-ink-muted mr-2">
                 Progress
               </span>
-              {nextStatuses(shipment.status).map((to) => (
-                <Button
-                  key={to}
-                  variant={to === 'CANCELLED' ? 'danger' : 'primary'}
-                  size="sm"
-                  onClick={() => transitionMutation.mutate(to)}
-                  disabled={transitionMutation.isPending}
-                >
-                  {transitionMutation.isPending && <Loader2 size={12} className="animate-spin" />}
-                  Mark {to.replace('_', ' ')}
-                </Button>
-              ))}
-              {nextStatuses(shipment.status).length === 0 && (
-                <span className="text-xs text-ink-subtle">Terminal status — no further transitions</span>
+              {/* ASSIGNED is system-initiated via the vehicle-assignment flow, never
+                  a manual transition from the detail view — filter it out to avoid
+                  presenting a button that would always fail (no vehicleId set). */}
+              {nextStatuses(shipment.status)
+                .filter((to) => to !== 'ASSIGNED')
+                .map((to) => (
+                  <Button
+                    key={to}
+                    variant={to === 'CANCELLED' ? 'danger' : 'primary'}
+                    size="sm"
+                    onClick={() => transitionMutation.mutate(to)}
+                    disabled={transitionMutation.isPending}
+                  >
+                    {transitionMutation.isPending && <Loader2 size={12} className="animate-spin" />}
+                    Mark {to.replace('_', ' ')}
+                  </Button>
+                ))}
+              {nextStatuses(shipment.status).filter((to) => to !== 'ASSIGNED').length === 0 && (
+                <span className="text-xs text-ink-subtle">
+                  {nextStatuses(shipment.status).length === 0
+                    ? 'Terminal status — no further transitions'
+                    : 'Use the assignment flow to assign this shipment to a vehicle'}
+                </span>
               )}
             </div>
           </div>
@@ -149,7 +162,18 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 function AddressBlock({
   a,
 }: {
-  a: { name: string; address1: string; city: string; state: string; zipCode: string; openTime: string; closeTime: string; contactPerson?: string; phoneNumber?: string };
+  a: {
+    name: string;
+    address1: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    openTime: string;
+    closeTime: string;
+    contactPerson?: string;
+    phoneNumber?: string;
+    notes?: string;
+  };
 }) {
   return (
     <div className="text-xs leading-relaxed">
@@ -159,6 +183,12 @@ function AddressBlock({
       <div className="text-ink-subtle mt-1">
         Window {a.openTime}–{a.closeTime}
       </div>
+      {a.notes && (
+        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-amber-800 flex items-start gap-1.5">
+          <Info size={12} className="shrink-0 mt-0.5" />
+          <span className="leading-snug">{a.notes}</span>
+        </div>
+      )}
     </div>
   );
 }
