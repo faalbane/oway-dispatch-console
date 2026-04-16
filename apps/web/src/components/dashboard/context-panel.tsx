@@ -206,7 +206,8 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="p-4 border-b border-line flex items-start justify-between">
+      {/* Pinned header — close button always visible */}
+      <div className="shrink-0 p-4 border-b border-line flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm font-semibold">{v.id}</span>
@@ -223,10 +224,12 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
         </Button>
       </div>
 
-      <div className="px-4 py-3 border-b border-line space-y-2">
-        <CapacityBar label="Pallets" current={v.loadPallets} max={v.maxPallets} unit="pallets" />
-        <CapacityBar label="Weight" current={v.loadWeightLbs} max={v.maxWeightLbs} unit="lbs" />
-      </div>
+      {/* Single scrollable content area — one scrollbar for the whole panel */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-4 py-3 border-b border-line space-y-2">
+          <CapacityBar label="Pallets" current={v.loadPallets} max={v.maxPallets} unit="pallets" />
+          <CapacityBar label="Weight" current={v.loadWeightLbs} max={v.maxWeightLbs} unit="lbs" />
+        </div>
 
       {/* Route summary + compute button */}
       <div className="px-4 py-3 border-b border-line">
@@ -284,8 +287,8 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
         </div>
       )}
 
-      {/* Stops list */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Stops list — part of the outer scroll container, not its own */}
+      <div>
         {route && route.stops.length > 0 ? (
           <ol className="divide-y divide-line/60">
             {route.stops.map((s) => (
@@ -362,6 +365,7 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
         ) : (
           <div className="px-4 py-8 text-center text-xs text-ink-subtle">No shipments assigned.</div>
         )}
+      </div>
       </div>
     </div>
   );
