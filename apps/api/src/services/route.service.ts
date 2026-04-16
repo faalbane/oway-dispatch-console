@@ -1,9 +1,10 @@
-import type { Route, ShipmentStatus } from '@oway/shared';
+import type { Route, ShipmentStatus, VehicleType } from '@oway/shared';
 import { isActiveAssignment } from '@oway/shared';
 import { prisma } from '../db.js';
 import { ApiError } from '../lib/api-error.js';
 import { generateRoute, type RouteableShipment } from '../domain/routing.js';
 import { getDistanceMatrix, haversineMiles, matrixDistanceFn, type LatLng } from '../domain/distance.js';
+import { estimateRouteCost } from '../domain/cost.js';
 import { addressKey } from '../lib/address-key.js';
 import { deserializeShipment } from '../lib/serialize.js';
 
@@ -87,6 +88,10 @@ export async function computeRouteForVehicle(vehicleId: string): Promise<Route> 
   // Tag the route with which distance source was used (useful for debugging
   // and for the README claim that we try OSRM first).
   (route as Route & { distanceSource?: string }).distanceSource = distanceSource;
+
+  // Attach dollar estimate. Computed here (not inside the routing engine) to
+  // keep routing a pure graph/time problem and cost a separate concern.
+  route.costEstimate = estimateRouteCost(route, vehicle.type as VehicleType);
 
   // Persist
   await prisma.$transaction([

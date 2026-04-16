@@ -2,6 +2,28 @@ export function fmtLbs(n: number) {
   return `${n.toLocaleString()} lbs`;
 }
 
+const USD_WHOLE = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+const USD_CENTS = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Currency to the nearest whole dollar — use for headline/KPI figures. */
+export function fmtUSD(n: number): string {
+  return USD_WHOLE.format(n);
+}
+
+/** Currency to cents — use for breakdown lines where precision matters. */
+export function fmtUSDPrecise(n: number): string {
+  return USD_CENTS.format(n);
+}
+
 export function fmtPallets(n: number) {
   return `${n} ${n === 1 ? 'pallet' : 'pallets'}`;
 }

@@ -191,6 +191,22 @@ export const RouteRationaleSchema = z.object({
 });
 export type RouteRationale = z.infer<typeof RouteRationaleSchema>;
 
+export const CostEstimateSchema = z.object({
+  /** Sum of stopFees + distanceCost + fuelCost. */
+  total: z.number().nonnegative(),
+  /** N stops × stopFee. */
+  stopFees: z.number().nonnegative(),
+  /** totalDistanceMi × perMileRate. */
+  distanceCost: z.number().nonnegative(),
+  /** gallonsUsed × fuelPricePerGallon. */
+  fuelCost: z.number().nonnegative(),
+  /** totalDistanceMi / mpgUsed. Surfaced so the UI can show the fuel calc. */
+  gallonsUsed: z.number().nonnegative(),
+  /** MPG looked up for this vehicle type at compute time. */
+  mpgUsed: z.number().positive(),
+});
+export type CostEstimate = z.infer<typeof CostEstimateSchema>;
+
 export const RouteSchema = z.object({
   vehicleId: z.string(),
   computedAt: z.string(),
@@ -200,6 +216,8 @@ export const RouteSchema = z.object({
   unroutableShipmentIds: z.array(z.string()),
   /** How the algorithm chose this ordering — surfaced in UI for ops visibility. */
   rationale: RouteRationaleSchema,
+  /** Dollar estimate for running this route. Optional for back-compat with pre-cost cached routes. */
+  costEstimate: CostEstimateSchema.optional(),
 });
 export type Route = z.infer<typeof RouteSchema>;
 

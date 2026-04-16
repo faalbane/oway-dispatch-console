@@ -1,14 +1,14 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Truck, Box, Package, Weight, MapPin, LayoutDashboard } from 'lucide-react';
+import { Truck, Box, DollarSign, Package, Weight, MapPin, LayoutDashboard } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Pill, StatusBadge } from '@/components/ui/badge';
-import { fmtAddress } from '@/lib/format';
+import { fmtAddress, fmtUSD } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import type { Shipment, VehicleWithLoad } from '@oway/shared';
+import type { Route, Shipment, VehicleWithLoad } from '@oway/shared';
 
 export default function FleetPage() {
   const { data: vehicles } = useQuery({
@@ -22,6 +22,27 @@ export default function FleetPage() {
     refetchInterval: 5_000,
   });
   const { data: depot } = useQuery({ queryKey: ['depot'], queryFn: () => api.getDepot() });
+
+  // One query per vehicle route; react-query parallelizes. Invalidated by the
+  // same ['route', vehicleId] key that the dispatch view uses, so reassignments
+  // anywhere in the app flow through here automatically.
+  const routeQueries = useQueries({
+    queries: (vehicles ?? []).map((v) => ({
+      queryKey: ['route', v.id],
+      queryFn: () => api.getRoute(v.id),
+    })),
+  });
+  const routeByVehicleId = new Map<string, Route | null>();
+  (vehicles ?? []).forEach((v, i) => {
+    routeByVehicleId.set(v.id, routeQueries[i]?.data ?? null);
+  });
+  const fleetCost = Array.from(routeByVehicleId.values()).reduce(
+    (sum, r) => sum + (r?.costEstimate?.total ?? 0),
+    0,
+  );
+  const routedVehicleCount = Array.from(routeByVehicleId.values()).filter(
+    (r) => r?.costEstimate,
+  ).length;
 
   const totals = (vehicles ?? []).reduce(
     (acc, v) => ({
@@ -77,7 +98,7 @@ export default function FleetPage() {
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
         {/* KPI row */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <KpiCard
             label="Fleet utilization"
             value={`${totals.maxP > 0 ? Math.round((totals.loadP / totals.maxP) * 100) : 0}%`}
@@ -102,12 +123,27 @@ export default function FleetPage() {
             sub={`of ${Math.round(totals.maxW / 1000)}k lbs capacity`}
             tone={totals.loadW / totals.maxW > 0.9 ? 'warn' : 'neutral'}
           />
+          <KpiCard
+            label="Est. cost (today)"
+            value={fmtUSD(fleetCost)}
+            sub={
+              routedVehicleCount > 0
+                ? `${routedVehicleCount} of ${vehicles?.length ?? 0} route${routedVehicleCount === 1 ? '' : 's'} computed`
+                : 'No routes computed yet'
+            }
+            tone="neutral"
+          />
         </div>
 
         {/* Vehicle grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {vehicles?.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} shipments={shipments ?? []} />
+            <VehicleCard
+              key={v.id}
+              vehicle={v}
+              shipments={shipments ?? []}
+              route={routeByVehicleId.get(v.id) ?? null}
+            />
           ))}
         </div>
       </main>
@@ -137,11 +173,20 @@ function KpiCard({
   );
 }
 
-function VehicleCard({ vehicle: v, shipments }: { vehicle: VehicleWithLoad; shipments: Shipment[] }) {
+function VehicleCard({
+  vehicle: v,
+  shipments,
+  route,
+}: {
+  vehicle: VehicleWithLoad;
+  shipments: Shipment[];
+  route: Route | null;
+}) {
   const assigned = shipments.filter((s) => v.assignedShipmentIds.includes(s.id));
   const palletsPct = v.maxPallets > 0 ? (v.loadPallets / v.maxPallets) * 100 : 0;
   const weightPct = v.maxWeightLbs > 0 ? (v.loadWeightLbs / v.maxWeightLbs) * 100 : 0;
   const Icon = v.type === 'box_truck' ? Box : Truck;
+  const cost = route?.costEstimate;
 
   return (
     <Card className="overflow-hidden">
@@ -196,6 +241,24 @@ function VehicleCard({ vehicle: v, shipments }: { vehicle: VehicleWithLoad; ship
             unit="lbs"
           />
         </div>
+
+        {/* Cost row — shown when a route has been computed */}
+        {cost && (
+          <div className="mt-3 pt-3 border-t border-line/60 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[11px] text-ink-muted">
+              <DollarSign size={14} />
+              Est. route cost
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-semibold font-mono tabular-nums text-emerald-700">
+                {fmtUSD(cost.total)}
+              </div>
+              <div className="text-[10px] text-ink-subtle">
+                {route!.stops.length} stops · {route!.score.totalDistanceMi.toFixed(1)} mi · {cost.mpgUsed} mpg
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Assigned shipments list */}

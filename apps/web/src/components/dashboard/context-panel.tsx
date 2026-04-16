@@ -2,13 +2,13 @@
 
 import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Compass, Info, Loader2, Pencil, RotateCcw, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Compass, DollarSign, Info, Loader2, Pencil, RotateCcw, Sparkles, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, Pill } from '@/components/ui/badge';
 import { LinkifyShipments } from './linkify-shipments';
-import { fmtAddressFull, fmtTime, fmtTimeRange } from '@/lib/format';
+import { fmtAddressFull, fmtTime, fmtTimeRange, fmtUSD, fmtUSDPrecise } from '@/lib/format';
 import { CapacityBar } from '@/components/ui/progress';
 import { useState } from 'react';
 import type { Shipment, ShipmentStatus } from '@oway/shared';
@@ -300,11 +300,20 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
                 {route.score.windowViolations > 0 ? ` (+${route.score.windowViolationMinutes}min)` : ''}
               </span>
             </div>
+            {route.costEstimate && (
+              <div className="flex justify-between pt-1 mt-1 border-t border-line/60">
+                <span className="font-semibold text-ink">Est. cost</span>
+                <span className="font-mono font-semibold text-emerald-700 tabular-nums">
+                  {fmtUSD(route.costEstimate.total)}
+                </span>
+              </div>
+            )}
             {route.unroutableShipmentIds.length > 0 && (
               <div className="text-amber-700">
                 Skipped (ungeocodable): <LinkifyShipments text={route.unroutableShipmentIds.join(', ')} />
               </div>
             )}
+            {route.costEstimate && <CostBreakdownPanel cost={route.costEstimate} miles={route.score.totalDistanceMi} stopCount={route.stops.length} />}
             <RationalePanel rationale={route.rationale} />
           </div>
         ) : (
@@ -757,6 +766,66 @@ function DetailAddress({
           <span className="leading-snug">{a.notes}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function CostBreakdownPanel({
+  cost,
+  miles,
+  stopCount,
+}: {
+  cost: import('@oway/shared').CostEstimate;
+  miles: number;
+  stopCount: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="mt-2 pt-2 border-t border-line/60">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 transition-colors"
+      >
+        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <DollarSign size={11} />
+        How is this cost calculated?
+      </button>
+      {expanded && (
+        <div className="mt-2 text-[11px] text-ink-muted">
+          <div className="rounded-md bg-emerald-50/70 border border-emerald-200/70 p-2.5 space-y-1.5 text-emerald-900">
+            <BreakdownRow
+              label={`Stops (${stopCount} × $75)`}
+              value={fmtUSDPrecise(cost.stopFees)}
+            />
+            <BreakdownRow
+              label={`Distance (${miles.toFixed(1)} mi × $3.53)`}
+              value={fmtUSDPrecise(cost.distanceCost)}
+            />
+            <BreakdownRow
+              label={`Fuel (${cost.gallonsUsed.toFixed(2)} gal × $6 @ ${cost.mpgUsed} mpg)`}
+              value={fmtUSDPrecise(cost.fuelCost)}
+            />
+            <div className="flex justify-between pt-1 mt-1 border-t border-emerald-200/70 font-semibold">
+              <span>Total</span>
+              <span className="font-mono tabular-nums">{fmtUSDPrecise(cost.total)}</span>
+            </div>
+          </div>
+          <div className="mt-1.5 text-[10px] text-ink-subtle leading-snug">
+            Recomputes when the route is recomputed. Rates live in <code className="font-mono">COST_ESTIMATES</code>.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BreakdownRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="leading-snug">{label}</span>
+      <span className="font-mono tabular-nums shrink-0">{value}</span>
     </div>
   );
 }
