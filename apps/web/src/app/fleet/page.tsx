@@ -166,9 +166,14 @@ function VehicleCard({ vehicle: v, shipments }: { vehicle: VehicleWithLoad; ship
             <div className={cn(
               'text-sm font-semibold',
               assigned.length === 0 ? 'text-ink-subtle' :
-              palletsPct >= 90 || weightPct >= 90 ? 'text-amber-600' : 'text-emerald-600'
+              palletsPct >= 100 || weightPct >= 100 ? 'text-red-600' :
+              palletsPct >= 90 || weightPct >= 90 ? 'text-amber-600' :
+              'text-emerald-600'
             )}>
-              {assigned.length === 0 ? 'Idle' : palletsPct >= 90 || weightPct >= 90 ? 'Near full' : 'Active'}
+              {assigned.length === 0 ? 'Idle' :
+                palletsPct >= 100 || weightPct >= 100 ? 'Full' :
+                palletsPct >= 90 || weightPct >= 90 ? 'Near full' :
+                'Active'}
             </div>
           </div>
         </div>
