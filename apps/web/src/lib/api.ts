@@ -83,4 +83,9 @@ export const api = {
   listDataIssues: () => request<{ shipmentId: string; issues: Shipment['dataIssues'] }[]>('/data-issues'),
 
   getDepot: () => request<Depot>('/depot'),
+
+  getGeocodes: (keys: string[]) =>
+    request<Array<{ key: string; lat: number | null; lng: number | null; source: string }>>(
+      `/geocodes?keys=${encodeURIComponent(keys.join(','))}`,
+    ),
 };

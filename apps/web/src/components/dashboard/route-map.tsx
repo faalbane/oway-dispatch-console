@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-
 import L from 'leaflet';
 import { useEffect } from 'react';
 import type { Depot, Route } from '@oway/shared';
+import { fmtTime, fmtTimeRange } from '@/lib/format';
 
 // Fix Leaflet's default icon URLs (Next.js bundling issue)
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -88,9 +89,18 @@ export function RouteMap({ route, depot }: Props) {
                   {s.order + 1}. {s.kind.toUpperCase()} — {s.shipmentId}
                 </div>
                 <div>{s.address.name}</div>
-                <div>{s.address.address1}, {s.address.city}</div>
+                <div className="text-gray-600">{s.address.address1}, {s.address.city}, {s.address.state} {s.address.zipCode}</div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.address.address1}, ${s.address.city}, ${s.address.state} ${s.address.zipCode}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                  style={{ fontSize: 11 }}
+                >
+                  Open in Google Maps
+                </a>
                 <div className="pt-1 border-t border-slate-200 mt-1">
-                  Arrive {s.etaArrival} · Window {s.address.openTime}–{s.address.closeTime}
+                  Arrive {fmtTime(s.etaArrival)} · Window {fmtTimeRange(s.address.openTime, s.address.closeTime)}
                 </div>
                 {s.address.notes && (
                   <div

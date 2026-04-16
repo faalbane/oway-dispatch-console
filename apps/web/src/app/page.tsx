@@ -1,13 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DispatchProvider, useDispatch } from '@/state/dispatch-store';
 import { TopBar } from '@/components/dashboard/top-bar';
 import { VehicleRail } from '@/components/dashboard/vehicle-rail';
 import { ShipmentTable } from '@/components/dashboard/shipment-table';
 import { ContextPanel } from '@/components/dashboard/context-panel';
-import { ShipmentDetailDrawer } from '@/components/dashboard/shipment-detail-drawer';
 import { api } from '@/lib/api';
 
 export default function Page() {
@@ -19,11 +18,23 @@ export default function Page() {
 }
 
 function Dashboard() {
-  const { selectedShipmentIds } = useDispatch();
+  const { selectedShipmentIds, focusedVehicleId, focusVehicle } = useDispatch();
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  // Pull all shipments once so the rail/context can resolve selections without
-  // refetching per-id (we already poll the table). Keep fresh enough for UI.
+  // Last-click-wins: clicking a shipment row clears vehicle focus;
+  // clicking a vehicle clears shipment detail.
+  const handleSelectShipment = useCallback(
+    (id: string) => {
+      setDetailId(id);
+      focusVehicle(null);
+    },
+    [focusVehicle],
+  );
+
+  useEffect(() => {
+    if (focusedVehicleId) setDetailId(null);
+  }, [focusedVehicleId]);
+
   const { data: allShipments } = useQuery({
     queryKey: ['shipments', { __all: true }],
     queryFn: () => api.listShipments(),
@@ -40,12 +51,15 @@ function Dashboard() {
       <TopBar />
       <main className="flex-1 flex min-h-0">
         <VehicleRail selectedShipments={selectedShipments} />
-        <ShipmentTable onSelectShipment={setDetailId} />
+        <ShipmentTable onSelectShipment={handleSelectShipment} />
         <aside className="w-[480px] shrink-0 border-l border-line bg-white h-full">
-          <ContextPanel selectedShipments={selectedShipments} />
+          <ContextPanel
+            selectedShipments={selectedShipments}
+            detailShipmentId={detailId}
+            onCloseDetail={() => setDetailId(null)}
+          />
         </aside>
       </main>
-      <ShipmentDetailDrawer shipmentId={detailId} onClose={() => setDetailId(null)} />
     </div>
   );
 }

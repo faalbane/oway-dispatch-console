@@ -58,8 +58,17 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
       reset();
     },
     onError: (err) => {
-      if (err instanceof ApiClientError) setError(err.body.error.message);
-      else setError(String(err));
+      if (err instanceof ApiClientError) {
+        const details = err.body.error.details;
+        if (details && 'issues' in details && Array.isArray(details.issues)) {
+          const lines = (details.issues as Array<{ path: (string | number)[]; message: string }>)
+            .map((i) => `${i.path.join('.')}: ${i.message}`)
+            .join('\n');
+          setError(lines);
+        } else {
+          setError(err.body.error.message);
+        }
+      } else setError(String(err));
     },
   });
 
@@ -128,7 +137,7 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
           </div>
 
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 whitespace-pre-line">{error}</div>
           )}
         </div>
 

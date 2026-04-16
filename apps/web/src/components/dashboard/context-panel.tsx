@@ -6,11 +6,12 @@ import { Compass, Info, Loader2, RotateCcw, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
-import { Pill } from '@/components/ui/badge';
-import { fmtAddressFull } from '@/lib/format';
+import { StatusBadge, Pill } from '@/components/ui/badge';
+import { fmtAddressFull, fmtTime, fmtTimeRange } from '@/lib/format';
 import { CapacityBar } from '@/components/ui/progress';
 import { useState } from 'react';
-import type { Shipment } from '@oway/shared';
+import type { Shipment, ShipmentStatus } from '@oway/shared';
+import { nextStatuses } from '@oway/shared';
 import { cn } from '@/lib/cn';
 
 const RouteMap = dynamic(() => import('./route-map').then((m) => m.RouteMap), {
@@ -22,13 +23,28 @@ const RouteMap = dynamic(() => import('./route-map').then((m) => m.RouteMap), {
   ),
 });
 
+const ShipmentMap = dynamic(() => import('./shipment-map').then((m) => m.ShipmentMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full text-xs text-ink-subtle">
+      Loading map…
+    </div>
+  ),
+});
+
 interface Props {
   selectedShipments: Shipment[];
+  detailShipmentId: string | null;
+  onCloseDetail: () => void;
 }
 
-export function ContextPanel({ selectedShipments }: Props) {
+export function ContextPanel({ selectedShipments, detailShipmentId, onCloseDetail }: Props) {
   const { focusedVehicleId, focusVehicle, clearSelection } = useDispatch();
 
+  // Priority: shipment detail > vehicle focus > selection > empty
+  if (detailShipmentId) {
+    return <ShipmentDetail shipmentId={detailShipmentId} onClose={onCloseDetail} />;
+  }
   if (focusedVehicleId) {
     return <VehicleContext vehicleId={focusedVehicleId} onClose={() => focusVehicle(null)} />;
   }
@@ -293,12 +309,12 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
                       {s.kind === 'pickup' ? 'Pickup' : 'Delivery'}{' '}
                       <span className="font-mono text-ink-subtle">{s.shipmentId}</span>
                     </span>
-                    <span className="text-[11px] font-mono tabular-nums text-ink-subtle">{s.etaArrival}</span>
+                    <span className="text-[11px] font-mono tabular-nums text-ink-subtle">{fmtTime(s.etaArrival)}</span>
                   </div>
                   <div className="text-[11px] text-ink-muted truncate">{s.address.name}</div>
                   <div className="text-[11px] text-ink-subtle truncate">{fmtAddressFull(s.address)}</div>
                   <div className="text-[10px] text-ink-subtle mt-0.5">
-                    Window {s.address.openTime}–{s.address.closeTime}
+                    Window {fmtTimeRange(s.address.openTime, s.address.closeTime)}
                     {s.windowStatus === 'violated' && (
                       <span className="ml-2 text-red-600 font-medium">VIOLATED</span>
                     )}
@@ -346,6 +362,215 @@ function VehicleContext({ vehicleId, onClose }: { vehicleId: string; onClose: ()
           <div className="px-4 py-8 text-center text-xs text-ink-subtle">No shipments assigned.</div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+ * Shipment detail — inline in the right rail (replaces the old modal dialog)
+ * ==========================================================================*/
+
+function addressKey(a: { address1: string; city: string; state: string; zipCode: string }): string {
+  return `${a.address1}|${a.city}|${a.state}|${a.zipCode}`.toLowerCase().trim();
+}
+
+function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { focusVehicle } = useDispatch();
+  const { data: shipment, isLoading } = useQuery({
+    queryKey: ['shipment', shipmentId],
+    queryFn: () => api.getShipment(shipmentId),
+  });
+
+  const geocodeKeys = shipment
+    ? [addressKey(shipment.origin), addressKey(shipment.destination)]
+    : [];
+  const { data: geocodes } = useQuery({
+    queryKey: ['geocodes', geocodeKeys],
+    queryFn: () => api.getGeocodes(geocodeKeys),
+    enabled: geocodeKeys.length > 0,
+  });
+
+  const originGeo = geocodes?.find((g) => g.key === geocodeKeys[0] && g.lat !== null);
+  const destGeo = geocodes?.find((g) => g.key === geocodeKeys[1] && g.lat !== null);
+
+  const [error, setError] = useState<string | null>(null);
+
+  const transitionMutation = useMutation({
+    mutationFn: (to: ShipmentStatus) => api.transitionStatus(shipmentId, to),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shipment', shipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
+      queryClient.invalidateQueries({ queryKey: ['route'] });
+      setError(null);
+    },
+    onError: (err) => {
+      if (err instanceof ApiClientError) setError(err.body.error.message);
+      else setError(String(err));
+    },
+  });
+
+  if (isLoading || !shipment) {
+    return <div className="p-8 text-sm text-ink-subtle">Loading…</div>;
+  }
+
+  return (
+    <div className="h-full overflow-y-auto bg-white">
+      <div className="p-4 border-b border-line flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm font-semibold">{shipment.id}</span>
+            <StatusBadge status={shipment.status} />
+          </div>
+          {shipment.vehicleId && (
+            <div className="text-[11px] text-ink-muted mt-1 font-mono">Vehicle: {shipment.vehicleId}</div>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X size={14} />
+        </Button>
+      </div>
+
+      {/* Mini-map showing pickup → delivery */}
+      <div className="h-[220px] border-b border-line">
+        <ShipmentMap
+          origin={originGeo ? { lat: originGeo.lat!, lng: originGeo.lng!, name: shipment.origin.name, address1: shipment.origin.address1, city: shipment.origin.city, state: shipment.origin.state, zipCode: shipment.origin.zipCode } : null}
+          destination={destGeo ? { lat: destGeo.lat!, lng: destGeo.lng!, name: shipment.destination.name, address1: shipment.destination.address1, city: shipment.destination.city, state: shipment.destination.state, zipCode: shipment.destination.zipCode } : null}
+        />
+      </div>
+
+      {/* Quick-nav to vehicle route if assigned */}
+      {shipment.vehicleId && (
+        <button
+          type="button"
+          onClick={() => { onClose(); focusVehicle(shipment.vehicleId!); }}
+          className="w-full px-4 py-2 text-xs text-indigo-700 bg-indigo-50 border-b border-line hover:bg-indigo-100 transition-colors text-left"
+        >
+          View full route for <span className="font-mono font-semibold">{shipment.vehicleId}</span> →
+        </button>
+      )}
+
+      <div className="p-4 space-y-4">
+        <DetailSection label="Description">
+          <div className="text-sm">{shipment.description || <em className="text-ink-subtle">none</em>}</div>
+        </DetailSection>
+
+        <div className="grid grid-cols-2 gap-4">
+          <DetailSection label="Origin">
+            <DetailAddress a={shipment.origin} />
+          </DetailSection>
+          <DetailSection label="Destination">
+            <DetailAddress a={shipment.destination} />
+          </DetailSection>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <DetailSection label="Pallets">
+            <div className="font-mono text-lg">{shipment.palletCount}</div>
+          </DetailSection>
+          <DetailSection label="Weight">
+            <div className="font-mono text-lg">{shipment.weightLbs.toLocaleString()} lbs</div>
+          </DetailSection>
+          <DetailSection label="Accessorials">
+            <div className="flex flex-wrap gap-1 mt-1">
+              {shipment.accessorials.length === 0 ? (
+                <span className="text-xs text-ink-subtle">none</span>
+              ) : (
+                shipment.accessorials.map((a) => (
+                  <Pill key={a} tone={a === 'hazmat' ? 'danger' : 'neutral'}>{a}</Pill>
+                ))
+              )}
+            </div>
+          </DetailSection>
+        </div>
+
+        {shipment.dataIssues.length > 0 && (
+          <DetailSection label="Data Quality">
+            <ul className="space-y-1.5">
+              {shipment.dataIssues.map((i, idx) => (
+                <li key={idx} className="text-xs flex items-start gap-2">
+                  <Pill tone={i.severity === 'blocking' ? 'danger' : 'warn'}>{i.severity}</Pill>
+                  <span>{i.message}</span>
+                </li>
+              ))}
+            </ul>
+          </DetailSection>
+        )}
+
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
+        )}
+
+        <div className="flex items-center gap-2 pt-3 border-t border-line">
+          <span className="text-[11px] uppercase tracking-wider font-semibold text-ink-muted mr-2">
+            Progress
+          </span>
+          {nextStatuses(shipment.status)
+            .filter((to) => to !== 'ASSIGNED')
+            .map((to) => (
+              <Button
+                key={to}
+                variant={to === 'CANCELLED' ? 'danger' : 'primary'}
+                size="sm"
+                onClick={() => transitionMutation.mutate(to)}
+                disabled={transitionMutation.isPending}
+              >
+                {transitionMutation.isPending && <Loader2 size={12} className="animate-spin" />}
+                Mark {to.replace('_', ' ')}
+              </Button>
+            ))}
+          {nextStatuses(shipment.status).filter((to) => to !== 'ASSIGNED').length === 0 && (
+            <span className="text-xs text-ink-subtle">
+              {nextStatuses(shipment.status).length === 0
+                ? 'Terminal status — no further transitions'
+                : 'Use the assignment flow to assign this shipment to a vehicle'}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wider font-semibold text-ink-muted mb-1">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function DetailAddress({
+  a,
+}: {
+  a: {
+    name: string;
+    address1: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    openTime: string;
+    closeTime: string;
+    contactPerson?: string;
+    phoneNumber?: string;
+    notes?: string;
+  };
+}) {
+  return (
+    <div className="text-xs leading-relaxed">
+      <div className="font-medium">{a.name}</div>
+      <div className="text-ink-muted">{fmtAddressFull(a)}</div>
+      {a.contactPerson && <div className="text-ink-subtle">{a.contactPerson}</div>}
+      <div className="text-ink-subtle mt-1">Window {fmtTimeRange(a.openTime, a.closeTime)}</div>
+      {a.notes && (
+        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-amber-800 flex items-start gap-1.5">
+          <Info size={12} className="shrink-0 mt-0.5" />
+          <span className="leading-snug">{a.notes}</span>
+        </div>
+      )}
     </div>
   );
 }

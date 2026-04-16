@@ -7,6 +7,7 @@ import vehicleRoutes from './routes/vehicles.js';
 import assignmentRoutes from './routes/assignments.js';
 import dataIssueRoutes from './routes/data-issues.js';
 import depotRoutes from './routes/depot.js';
+import geocodeRoutes from './routes/geocodes.js';
 
 const app = Fastify({
   logger: {
@@ -48,6 +49,7 @@ await app.register(
     await api.register(assignmentRoutes);
     await api.register(dataIssueRoutes);
     await api.register(depotRoutes);
+    await api.register(geocodeRoutes);
   },
   { prefix: '/api/v1' },
 );
