@@ -37,4 +37,93 @@ export default async function geocodeRoutes(app: FastifyInstance) {
     }
     return { verified: false, reason: 'address could not be geocoded' };
   });
+
+  /**
+   * Google Places Autocomplete — suggests addresses as the user types.
+   * Returns empty list if GOOGLE_MAPS_API_KEY isn't configured (OSM has no
+   * comparable autocomplete; graceful no-op).
+   */
+  app.get('/geocodes/autocomplete', async (req) => {
+    const { q } = z.object({ q: z.string().min(2) }).parse(req.query);
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return { suggestions: [] };
+    try {
+      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+        },
+        body: JSON.stringify({ input: q, includedRegionCodes: ['us'] }),
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!res.ok) return { suggestions: [] };
+      const json = (await res.json()) as {
+        suggestions?: Array<{
+          placePrediction?: {
+            placeId: string;
+            text?: { text: string };
+            structuredFormat?: { mainText?: { text: string }; secondaryText?: { text: string } };
+          };
+        }>;
+      };
+      return {
+        suggestions: (json.suggestions ?? [])
+          .map((s) => s.placePrediction)
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({
+            placeId: p.placeId,
+            text: p.text?.text ?? '',
+            mainText: p.structuredFormat?.mainText?.text ?? '',
+            secondaryText: p.structuredFormat?.secondaryText?.text ?? '',
+          })),
+      };
+    } catch {
+      return { suggestions: [] };
+    }
+  });
+
+  /**
+   * Fetches full structured address details for a Google Places placeId —
+   * parses the address_components into our {address1, city, state, zipCode} shape.
+   */
+  app.get('/geocodes/place-details', async (req) => {
+    const { placeId } = z.object({ placeId: z.string().min(1) }).parse(req.query);
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return { found: false };
+    try {
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'addressComponents,location,formattedAddress',
+        },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!res.ok) return { found: false };
+      const json = (await res.json()) as {
+        formattedAddress?: string;
+        location?: { latitude: number; longitude: number };
+        addressComponents?: Array<{ longText: string; shortText: string; types: string[] }>;
+      };
+      const components = json.addressComponents ?? [];
+      const get = (type: string, short = false): string => {
+        const c = components.find((c) => c.types.includes(type));
+        return c ? (short ? c.shortText : c.longText) : '';
+      };
+      const streetNumber = get('street_number');
+      const route = get('route');
+      return {
+        found: true,
+        address1: [streetNumber, route].filter(Boolean).join(' '),
+        city: get('locality') || get('sublocality') || get('postal_town'),
+        state: get('administrative_area_level_1', true),
+        zipCode: get('postal_code'),
+        lat: json.location?.latitude,
+        lng: json.location?.longitude,
+        formattedAddress: json.formattedAddress,
+      };
+    } catch {
+      return { found: false };
+    }
+  });
 }

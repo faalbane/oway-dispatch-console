@@ -100,4 +100,21 @@ export const api = {
       formattedAddress?: string;
       reason?: string;
     }>(`/geocodes/verify`, { method: 'POST', body: JSON.stringify(addr) }),
+
+  autocompleteAddress: (q: string) =>
+    request<{
+      suggestions: Array<{ placeId: string; text: string; mainText: string; secondaryText: string }>;
+    }>(`/geocodes/autocomplete?q=${encodeURIComponent(q)}`),
+
+  placeDetails: (placeId: string) =>
+    request<{
+      found: boolean;
+      address1?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      lat?: number;
+      lng?: number;
+      formattedAddress?: string;
+    }>(`/geocodes/place-details?placeId=${encodeURIComponent(placeId)}`),
 };

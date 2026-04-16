@@ -244,7 +244,19 @@ function AddressFieldset({
     <fieldset className="space-y-2 border border-line rounded-md p-3">
       <legend className="px-1 text-[11px] uppercase tracking-wider font-semibold text-ink-muted">{label}</legend>
       <TextField label="Name" value={value.name} onChange={(v) => set('name', v)} />
-      <TextField label="Address" value={value.address1} onChange={(v) => set('address1', v)} />
+      <AddressAutocomplete
+        value={value.address1}
+        onChange={(v) => set('address1', v)}
+        onSelect={(details) => {
+          onChange({
+            ...value,
+            address1: details.address1 ?? value.address1,
+            city: details.city ?? value.city,
+            state: details.state ?? value.state,
+            zipCode: details.zipCode ?? value.zipCode,
+          });
+        }}
+      />
       <div className="grid grid-cols-3 gap-2">
         <TextField label="City" value={value.city} onChange={(v) => set('city', v)} />
         <TextField label="State" value={value.state} onChange={(v) => set('state', v)} maxLength={2} />
@@ -303,6 +315,100 @@ function VerifyIndicator({ state }: { state: VerifyState }) {
       <AlertCircle size={11} className="shrink-0" />
       <span>Address not found. You can still save — routes will flag it as ungeocodable.</span>
     </div>
+  );
+}
+
+function AddressAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (details: { address1?: string; city?: string; state?: string; zipCode?: string }) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<Array<{ placeId: string; text: string; mainText: string; secondaryText: string }>>([]);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  useEffect(() => {
+    if (value.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const res = await api.autocompleteAddress(value);
+        setSuggestions(res.suggestions.slice(0, 6));
+      } catch {
+        setSuggestions([]);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [value]);
+
+  const pickSuggestion = async (placeId: string) => {
+    setOpen(false);
+    setSuggestions([]);
+    try {
+      const details = await api.placeDetails(placeId);
+      if (details.found) onSelect(details);
+    } catch {
+      // No-op; user can continue typing
+    }
+  };
+
+  return (
+    <label className="block relative">
+      <span className="block text-[10px] uppercase tracking-wider font-semibold text-ink-subtle mb-0.5">Address</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActiveIndex(-1);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={(e) => {
+          if (!open || suggestions.length === 0) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex((i) => Math.max(i - 1, 0));
+          } else if (e.key === 'Enter' && activeIndex >= 0) {
+            e.preventDefault();
+            pickSuggestion(suggestions[activeIndex]!.placeId);
+          } else if (e.key === 'Escape') {
+            setOpen(false);
+          }
+        }}
+        className="w-full px-2 py-1 text-xs rounded border border-line focus:ring-1 focus:ring-slate-900 focus:outline-none"
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-line rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {suggestions.map((s, i) => (
+            <button
+              key={s.placeId}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+              onClick={() => pickSuggestion(s.placeId)}
+              onMouseEnter={() => setActiveIndex(i)}
+              className={`w-full text-left px-3 py-2 border-b border-line/60 last:border-0 transition-colors ${
+                activeIndex === i ? 'bg-indigo-50' : 'hover:bg-surface-subtle'
+              }`}
+            >
+              <div className="text-xs font-medium text-ink truncate">{s.mainText}</div>
+              <div className="text-[11px] text-ink-subtle truncate">{s.secondaryText}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </label>
   );
 }
 
