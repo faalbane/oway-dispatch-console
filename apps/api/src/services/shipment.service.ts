@@ -112,6 +112,86 @@ export async function overrideStatus(id: string, to: ShipmentStatus): Promise<Sh
   return deserializeShipment(updated as Parameters<typeof deserializeShipment>[0]);
 }
 
+/**
+ * Edit a shipment's content fields (origin, destination, pallets, weight,
+ * description, accessorials). Status and vehicleId are owned by the
+ * status/assignment flows — not editable here.
+ *
+ * Re-runs data quality validation, geocodes new addresses, and invalidates
+ * any computed route if the shipment is currently assigned to a vehicle.
+ *
+ * Editing a DELIVERED/CANCELLED shipment is allowed (so ops can correct
+ * historical records) but no longer affects routing.
+ */
+export async function updateShipment(id: string, input: CreateShipmentInput): Promise<Shipment> {
+  const row = await prisma.shipment.findUnique({ where: { id } });
+  if (!row) throw new ApiError(404, 'NOT_FOUND', `Shipment ${id} not found`);
+
+  // Geocode any new addresses.
+  await Promise.all([ensureGeocoded(input.origin), ensureGeocoded(input.destination)]);
+
+  // Re-run data quality with the proposed new values.
+  const allShipments = await prisma.shipment.findMany();
+  const allRaw = allShipments.map((s) => ({
+    id: s.id,
+    origin: JSON.parse(s.origin),
+    destination: JSON.parse(s.destination),
+    palletCount: s.palletCount,
+    weightLbs: s.weightLbs,
+    description: s.description,
+    status: s.status as ShipmentStatus,
+    accessorials: JSON.parse(s.accessorials),
+  }));
+  // Replace the current row in allRaw with the proposed update so duplicate
+  // detection compares against everything else (not against the stale version).
+  const idx = allRaw.findIndex((s) => s.id === id);
+  const proposed = {
+    id,
+    origin: input.origin,
+    destination: input.destination,
+    palletCount: input.palletCount,
+    weightLbs: input.weightLbs,
+    description: input.description,
+    status: row.status as ShipmentStatus,
+    accessorials: input.accessorials ?? [],
+  };
+  if (idx >= 0) allRaw[idx] = proposed;
+
+  const vehicles = await prisma.vehicle.findMany();
+  const geocodes = await prisma.geocode.findMany({
+    where: { key: { in: [addressKey(input.origin), addressKey(input.destination)] } },
+  });
+  const geocodedMap = new Map<string, boolean>(geocodes.map((g) => [g.key, g.lat !== null]));
+  const issues = validateShipment(proposed, {
+    allShipments: allRaw,
+    geocoded: geocodedMap,
+    vehicleCapacities: vehicles,
+  });
+
+  // If shipment is ACTIVELY assigned, the vehicle's route is now stale.
+  const shouldInvalidateRoute =
+    row.vehicleId && (row.status === 'ASSIGNED' || row.status === 'PICKED_UP');
+
+  const [updated] = await prisma.$transaction([
+    prisma.shipment.update({
+      where: { id },
+      data: {
+        origin: JSON.stringify(input.origin),
+        destination: JSON.stringify(input.destination),
+        palletCount: input.palletCount,
+        weightLbs: input.weightLbs,
+        description: input.description,
+        accessorials: JSON.stringify(input.accessorials ?? []),
+        dataIssues: JSON.stringify(issues),
+      },
+    }),
+    ...(shouldInvalidateRoute
+      ? [prisma.route.deleteMany({ where: { vehicleId: row.vehicleId! } })]
+      : []),
+  ]);
+  return deserializeShipment(updated as Parameters<typeof deserializeShipment>[0]);
+}
+
 export async function createShipment(input: CreateShipmentInput): Promise<Shipment> {
   // Generate a sequential-looking ID for new shipments.
   const last = await prisma.shipment.findFirst({

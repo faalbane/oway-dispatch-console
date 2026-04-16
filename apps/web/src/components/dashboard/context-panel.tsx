@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Compass, Info, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Compass, Info, Loader2, Pencil, RotateCcw, Sparkles, X } from 'lucide-react';
 import { api, ApiClientError } from '@/lib/api';
 import { useDispatch } from '@/state/dispatch-store';
 import { Button } from '@/components/ui/button';
@@ -417,7 +417,7 @@ function addressKey(a: { address1: string; city: string; state: string; zipCode:
 
 function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const { focusVehicle, clearSelection } = useDispatch();
+  const { focusVehicle, openShipmentEditor } = useDispatch();
   const { data: shipment, isLoading } = useQuery({
     queryKey: ['shipment', shipmentId],
     queryFn: () => api.getShipment(shipmentId),
@@ -477,6 +477,14 @@ function ShipmentDetail({ shipmentId, onClose }: { shipmentId: string; onClose: 
         </div>
         <div className="flex items-center">
           <NavButtons />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openShipmentEditor(shipment.id)}
+            title="Edit shipment"
+          >
+            <Pencil size={13} />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X size={14} />
           </Button>

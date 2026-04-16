@@ -24,7 +24,7 @@ const ICONS = {
 } as const;
 
 export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { openShipmentDetail } = useDispatch();
+  const { openShipmentDetail, openShipmentEditor } = useDispatch();
   const { data } = useQuery({
     queryKey: ['data-issues'],
     queryFn: () => api.listDataIssues(),
@@ -37,6 +37,11 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
 
   const jumpTo = (shipmentId: string) => {
     openShipmentDetail(shipmentId);
+    onOpenChange(false);
+  };
+
+  const editShipment = (shipmentId: string) => {
+    openShipmentEditor(shipmentId);
     onOpenChange(false);
   };
 
@@ -86,7 +91,7 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
                           field: {issue.field}
                         </div>
                       )}
-                      <QuickActions issue={issue} jumpTo={jumpTo} onClose={() => onOpenChange(false)} />
+                      <QuickActions issue={issue} jumpTo={jumpTo} editShipment={editShipment} onClose={() => onOpenChange(false)} />
                     </div>
                     <button
                       type="button"
@@ -116,10 +121,12 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
 function QuickActions({
   issue,
   jumpTo,
+  editShipment,
   onClose,
 }: {
   issue: DataIssue & { shipmentId: string };
   jumpTo: (id: string) => void;
+  editShipment: (id: string) => void;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -154,8 +161,8 @@ function QuickActions({
     );
   } else if (issue.code === 'MISSING_ADDRESS' || issue.code === 'INVALID_ZIP' || issue.code === 'UNGEOCODABLE') {
     buttons.push(
-      <Button key="edit" variant="secondary" size="sm" onClick={() => jumpTo(issue.shipmentId)}>
-        Open to edit address
+      <Button key="edit" variant="secondary" size="sm" onClick={() => editShipment(issue.shipmentId)}>
+        Edit address
       </Button>,
     );
     buttons.push(
@@ -166,8 +173,8 @@ function QuickActions({
     );
   } else if (issue.code === 'ZERO_PALLETS' || issue.code === 'ZERO_WEIGHT' || issue.code === 'OVERSIZED' || issue.code === 'MISSING_DESCRIPTION') {
     buttons.push(
-      <Button key="edit" variant="secondary" size="sm" onClick={() => jumpTo(issue.shipmentId)}>
-        Open to edit
+      <Button key="edit" variant="secondary" size="sm" onClick={() => editShipment(issue.shipmentId)}>
+        Edit shipment
       </Button>,
     );
     if (issue.severity === 'blocking') {

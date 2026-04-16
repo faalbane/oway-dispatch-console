@@ -8,11 +8,13 @@ interface DispatchState {
   selectedShipmentIds: Set<string>;
   focusedVehicleId: string | null;
   detailShipmentId: string | null;
+  editingShipmentId: string | null;
   toggleShipment: (id: string) => void;
   selectShipments: (ids: string[]) => void;
   clearSelection: () => void;
   focusVehicle: (id: string | null) => void;
   openShipmentDetail: (id: string | null) => void;
+  openShipmentEditor: (id: string | null) => void;
   /** Back/forward browsing through prior shipment/vehicle views. */
   goBack: () => void;
   goForward: () => void;
@@ -32,6 +34,7 @@ export function DispatchProvider({ children }: { children: React.ReactNode }) {
   // step back and forward with the arrow buttons in the right rail header.
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [editingShipmentId, setEditingShipmentId] = useState<string | null>(null);
 
   const applyEntry = useCallback((e: HistoryEntry | null) => {
     if (!e) {
@@ -114,16 +117,20 @@ export function DispatchProvider({ children }: { children: React.ReactNode }) {
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex >= 0 && historyIndex < history.length - 1;
 
+  const openShipmentEditor = useCallback((id: string | null) => setEditingShipmentId(id), []);
+
   const value = useMemo(
     () => ({
       selectedShipmentIds,
       focusedVehicleId,
       detailShipmentId,
+      editingShipmentId,
       toggleShipment,
       selectShipments,
       clearSelection,
       focusVehicle,
       openShipmentDetail,
+      openShipmentEditor,
       goBack,
       goForward,
       canGoBack,
@@ -131,9 +138,9 @@ export function DispatchProvider({ children }: { children: React.ReactNode }) {
       historyDepth: history.length,
     }),
     [
-      selectedShipmentIds, focusedVehicleId, detailShipmentId,
+      selectedShipmentIds, focusedVehicleId, detailShipmentId, editingShipmentId,
       toggleShipment, selectShipments, clearSelection,
-      focusVehicle, openShipmentDetail,
+      focusVehicle, openShipmentDetail, openShipmentEditor,
       goBack, goForward, canGoBack, canGoForward,
       history.length,
     ],

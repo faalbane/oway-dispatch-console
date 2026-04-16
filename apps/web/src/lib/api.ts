@@ -56,6 +56,8 @@ export const api = {
   getShipment: (id: string) => request<Shipment>(`/shipments/${id}`),
   createShipment: (input: CreateShipmentInput) =>
     request<Shipment>('/shipments', { method: 'POST', body: JSON.stringify(input) }),
+  updateShipment: (id: string, input: CreateShipmentInput) =>
+    request<Shipment>(`/shipments/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   transitionStatus: (id: string, to: ShipmentStatus) =>
     request<Shipment>(`/shipments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ to }) }),
   overrideStatus: (id: string, to: ShipmentStatus) =>

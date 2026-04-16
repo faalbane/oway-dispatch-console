@@ -7,6 +7,7 @@ import { TopBar } from '@/components/dashboard/top-bar';
 import { VehicleRail } from '@/components/dashboard/vehicle-rail';
 import { ShipmentTable } from '@/components/dashboard/shipment-table';
 import { ContextPanel } from '@/components/dashboard/context-panel';
+import { NewShipmentDialog } from '@/components/dashboard/new-shipment-dialog';
 import { api } from '@/lib/api';
 
 export default function Page() {
@@ -18,7 +19,12 @@ export default function Page() {
 }
 
 function Dashboard() {
-  const { selectedShipmentIds, detailShipmentId, openShipmentDetail } = useDispatch();
+  const { selectedShipmentIds, detailShipmentId, openShipmentDetail, editingShipmentId, openShipmentEditor } = useDispatch();
+  const { data: editingShipment } = useQuery({
+    queryKey: ['shipment', editingShipmentId],
+    queryFn: () => api.getShipment(editingShipmentId!),
+    enabled: !!editingShipmentId,
+  });
 
   // Checking boxes = entering assignment mode — clear detail so
   // the assignment form surfaces immediately.
@@ -51,6 +57,12 @@ function Dashboard() {
           />
         </aside>
       </main>
+      {/* Edit dialog opened from data-issues quick actions, detail panel, etc. */}
+      <NewShipmentDialog
+        open={!!editingShipmentId && !!editingShipment}
+        onOpenChange={(o) => { if (!o) openShipmentEditor(null); }}
+        editing={editingShipment ?? null}
+      />
     </div>
   );
 }

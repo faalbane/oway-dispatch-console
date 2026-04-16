@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { api, ApiClientError } from '@/lib/api';
-import { ACCESSORIALS, type Accessorial } from '@oway/shared';
+import { ACCESSORIALS, type Accessorial, type Shipment } from '@oway/shared';
 import { cn } from '@/lib/cn';
 
 const blankAddress = () => ({
@@ -34,17 +34,48 @@ function defaultForm() {
 // Type alias used by AddressFieldset (formerly inferred from PREFILLS).
 type AddressFieldsetValue = ReturnType<typeof blankAddress>;
 
-export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function NewShipmentDialog({
+  open,
+  onOpenChange,
+  editing,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** When set, the dialog operates in edit mode against this shipment. */
+  editing?: Shipment | null;
+}) {
+  const isEdit = !!editing;
   const queryClient = useQueryClient();
-  const [initial] = useState(defaultForm);
-  const [origin, setOrigin] = useState(initial.origin);
-  const [destination, setDestination] = useState(initial.destination);
-  const [palletCount, setPalletCount] = useState<number>(initial.palletCount);
-  const [weightLbs, setWeightLbs] = useState<number>(initial.weightLbs);
-  const [description, setDescription] = useState(initial.description);
-  const [accessorials, setAccessorials] = useState<Accessorial[]>([]);
+  const [origin, setOrigin] = useState(() =>
+    editing
+      ? { ...editing.origin, address2: editing.origin.address2 ?? '', notes: editing.origin.notes ?? '' }
+      : defaultForm().origin,
+  );
+  const [destination, setDestination] = useState(() =>
+    editing
+      ? { ...editing.destination, address2: editing.destination.address2 ?? '', notes: editing.destination.notes ?? '' }
+      : defaultForm().destination,
+  );
+  const [palletCount, setPalletCount] = useState<number>(editing?.palletCount ?? 1);
+  const [weightLbs, setWeightLbs] = useState<number>(editing?.weightLbs ?? 500);
+  const [description, setDescription] = useState(editing?.description ?? '');
+  const [accessorials, setAccessorials] = useState<Accessorial[]>(editing?.accessorials ?? []);
   const [error, setError] = useState<string | null>(null);
   const [autoAssignTo, setAutoAssignTo] = useState<string | null>(null);
+
+  // Re-sync form state when the editing target changes (open another shipment).
+  useEffect(() => {
+    if (editing) {
+      setOrigin({ ...editing.origin, address2: editing.origin.address2 ?? '', notes: editing.origin.notes ?? '' });
+      setDestination({ ...editing.destination, address2: editing.destination.address2 ?? '', notes: editing.destination.notes ?? '' });
+      setPalletCount(editing.palletCount);
+      setWeightLbs(editing.weightLbs);
+      setDescription(editing.description);
+      setAccessorials(editing.accessorials);
+      setAutoAssignTo(null);
+      setError(null);
+    }
+  }, [editing]);
 
   const reset = () => {
     const next = defaultForm();
@@ -60,14 +91,11 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
 
   const create = useMutation({
     mutationFn: async () => {
-      const created = await api.createShipment({
-        origin,
-        destination,
-        palletCount,
-        weightLbs,
-        description,
-        accessorials,
-      });
+      const payload = { origin, destination, palletCount, weightLbs, description, accessorials };
+      if (isEdit && editing) {
+        return api.updateShipment(editing.id, payload);
+      }
+      const created = await api.createShipment(payload);
       if (autoAssignTo) {
         await api.assign({ vehicleId: autoAssignTo, shipmentIds: [created.id] });
       }
@@ -75,11 +103,13 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment'] });
       queryClient.invalidateQueries({ queryKey: ['data-issues'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-workload'] });
+      queryClient.invalidateQueries({ queryKey: ['route'] });
       onOpenChange(false);
-      reset();
+      if (!isEdit) reset();
     },
     onError: (err) => {
       if (err instanceof ApiClientError) {
@@ -110,9 +140,11 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
     >
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>New Shipment</DialogTitle>
+          <DialogTitle>{isEdit ? `Edit ${editing?.id}` : 'New Shipment'}</DialogTitle>
           <DialogDescription>
-            Validation runs server-side. Blocking issues will reject the create; warnings are recorded.
+            {isEdit
+              ? 'Editing re-runs data quality validation and clears any computed route on the assigned vehicle.'
+              : 'Validation runs server-side. Blocking issues will reject the create; warnings are recorded.'}
           </DialogDescription>
         </DialogHeader>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -160,13 +192,15 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
             </div>
           </div>
 
-          <EligibleVehicles
-            palletCount={palletCount}
-            weightLbs={weightLbs}
-            accessorials={accessorials}
-            selected={autoAssignTo}
-            onSelect={setAutoAssignTo}
-          />
+          {!isEdit && (
+            <EligibleVehicles
+              palletCount={palletCount}
+              weightLbs={weightLbs}
+              accessorials={accessorials}
+              selected={autoAssignTo}
+              onSelect={setAutoAssignTo}
+            />
+          )}
 
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 whitespace-pre-line">{error}</div>
@@ -179,7 +213,7 @@ export function NewShipmentDialog({ open, onOpenChange }: { open: boolean; onOpe
           </Button>
           <Button variant="primary" onClick={() => create.mutate()} disabled={create.isPending}>
             {create.isPending && <Loader2 size={12} className="animate-spin" />}
-            {autoAssignTo ? `Create & assign to ${autoAssignTo}` : 'Create'}
+            {isEdit ? 'Save changes' : autoAssignTo ? `Create & assign to ${autoAssignTo}` : 'Create'}
           </Button>
         </div>
       </DialogContent>

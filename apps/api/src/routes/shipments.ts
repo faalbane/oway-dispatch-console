@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { CreateShipmentSchema, ShipmentStatusSchema, UpdateStatusSchema } from '@oway/shared';
 import { z } from 'zod';
-import { createShipment, getShipment, listShipments, overrideStatus, transitionStatus } from '../services/shipment.service.js';
+import { createShipment, getShipment, listShipments, overrideStatus, transitionStatus, updateShipment } from '../services/shipment.service.js';
 
 const ListQuerySchema = z.object({
   status: ShipmentStatusSchema.optional(),
@@ -27,6 +27,12 @@ export default async function shipmentRoutes(app: FastifyInstance) {
     const result = await createShipment(body);
     reply.code(201);
     return result;
+  });
+
+  app.patch('/shipments/:id', async (req) => {
+    const { id } = z.object({ id: z.string() }).parse(req.params);
+    const body = CreateShipmentSchema.parse(req.body);
+    return updateShipment(id, body);
   });
 
   app.patch('/shipments/:id/status', async (req) => {
