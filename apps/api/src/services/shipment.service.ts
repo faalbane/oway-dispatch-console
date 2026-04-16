@@ -4,6 +4,7 @@ import { ApiError } from '../lib/api-error.js';
 import { deserializeShipment } from '../lib/serialize.js';
 import { addressKey } from '../lib/address-key.js';
 import { isBlocking, validateShipment } from '../domain/data-quality.js';
+import { ensureGeocoded } from '../lib/geocode-on-demand.js';
 
 interface ListFilters {
   status?: ShipmentStatus;
@@ -82,7 +83,9 @@ export async function createShipment(input: CreateShipmentInput): Promise<Shipme
   const lastNum = last ? parseInt(last.id.slice(3), 10) : 0;
   const id = `SHP${String(lastNum + 1).padStart(3, '0')}`;
 
-  // Look up geocoding for both addresses (best-effort; failures captured as data issues)
+  // Geocode origin + destination on-demand (calls Nominatim if not cached).
+  await Promise.all([ensureGeocoded(input.origin), ensureGeocoded(input.destination)]);
+
   const allShipments = await prisma.shipment.findMany();
   const allRaw = allShipments.map((s) => ({
     id: s.id,
