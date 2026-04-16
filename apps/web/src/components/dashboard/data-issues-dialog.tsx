@@ -143,6 +143,15 @@ function QuickActions({
     onError: (e) => setError(e instanceof ApiClientError ? e.body.error.message : String(e)),
   });
 
+  const dismissMutation = useMutation({
+    mutationFn: () => api.dismissIssue(issue.shipmentId, issue.code, issue.context),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['data-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment', issue.shipmentId] });
+    },
+    onError: (e) => setError(e instanceof ApiClientError ? e.body.error.message : String(e)),
+  });
+
   const duplicateOfId = (issue.context?.duplicateOf as string | undefined) ?? null;
 
   const buttons: React.ReactNode[] = [];
@@ -151,6 +160,12 @@ function QuickActions({
     buttons.push(
       <Button key="orig" variant="secondary" size="sm" onClick={() => { onClose(); jumpTo(duplicateOfId); }}>
         View original ({duplicateOfId})
+      </Button>,
+    );
+    buttons.push(
+      <Button key="dismiss" variant="ghost" size="sm" onClick={() => dismissMutation.mutate()} disabled={dismissMutation.isPending}>
+        {dismissMutation.isPending && <Loader2 size={11} className="animate-spin" />}
+        Mark intentional
       </Button>,
     );
     buttons.push(

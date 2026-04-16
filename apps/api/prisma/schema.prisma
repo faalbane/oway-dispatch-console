@@ -20,19 +20,22 @@ datasource db {
 }
 
 model Shipment {
-  id            String   @id
-  origin        String   // JSON-serialized Address
-  destination   String   // JSON-serialized Address
-  palletCount   Int
-  weightLbs     Float
-  description   String
-  status        String   // ShipmentStatus enum (validated in app layer)
-  accessorials  String   // JSON-serialized string[]
-  vehicleId     String?
-  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  dataIssues    String   @default("[]") // JSON-serialized DataIssue[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id
+  origin          String   // JSON-serialized Address
+  destination     String   // JSON-serialized Address
+  palletCount     Int
+  weightLbs       Float
+  description     String
+  status          String   // ShipmentStatus enum (validated in app layer)
+  accessorials    String   // JSON-serialized string[]
+  vehicleId       String?
+  vehicle         Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  dataIssues      String   @default("[]") // JSON-serialized DataIssue[]
+  // JSON array of {code, contextHash} — issues ops has confirmed are intentional
+  // and shouldn't be surfaced again (e.g. duplicates that are real recurring orders).
+  dismissedIssues String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([status])
   @@index([vehicleId])

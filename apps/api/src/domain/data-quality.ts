@@ -106,15 +106,27 @@ export function validateShipment(s: RawShipment, ctx: DataQualityContext): DataI
     }
   }
 
-  // Duplicate detection: same origin/dest/pallets/weight/description as another shipment
+  // Duplicate detection: same origin/dest/pallets/weight/description as another
+  // shipment. We *always* flag content-equal duplicates so ops can confirm —
+  // some are accidental, some are real recurring orders, and the system can't
+  // tell which without ops input. Timestamp delta helps ops decide:
+  //   - within 60 min → likely accidental double-entry
+  //   - hours/days apart → probably intentional (recurring order, split haul)
   const sig = duplicateSignature(s);
   const other = ctx.allShipments.find((x) => x.id !== s.id && duplicateSignature(x) === sig);
   if (other) {
+    const minutesApart = timestampDeltaMinutes(s.createdAt, other.createdAt);
+    const likelyAccidental = minutesApart !== null && minutesApart <= 60;
+    const message = likelyAccidental
+      ? `Identical content to ${other.id}, created ${minutesApart} min apart — likely accidental double-entry`
+      : minutesApart !== null
+        ? `Identical content to ${other.id} (created ${describeDelta(minutesApart)} apart) — confirm if intentional`
+        : `Identical content to ${other.id} — confirm if intentional`;
     issues.push({
       code: 'DUPLICATE_OF',
-      severity: 'warning',
-      message: `Looks like a duplicate of ${other.id}`,
-      context: { duplicateOf: other.id },
+      severity: likelyAccidental ? 'warning' : 'warning', // both warnings; phrasing differentiates
+      message,
+      context: { duplicateOf: other.id, minutesApart, likelyAccidental },
     });
   }
 
@@ -131,6 +143,20 @@ export function validateShipment(s: RawShipment, ctx: DataQualityContext): DataI
   }
 
   return issues;
+}
+
+function timestampDeltaMinutes(a?: string, b?: string): number | null {
+  if (!a || !b) return null;
+  const da = Date.parse(a);
+  const db = Date.parse(b);
+  if (isNaN(da) || isNaN(db)) return null;
+  return Math.abs(Math.round((da - db) / 60_000));
+}
+
+function describeDelta(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h`;
+  return `${Math.round(minutes / (60 * 24))}d`;
 }
 
 function duplicateSignature(s: RawShipment): string {

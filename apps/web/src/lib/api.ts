@@ -85,6 +85,11 @@ export const api = {
     request<Shipment>(`/assignments/${shipmentId}`, { method: 'DELETE' }),
 
   listDataIssues: () => request<{ shipmentId: string; issues: Shipment['dataIssues'] }[]>('/data-issues'),
+  dismissIssue: (shipmentId: string, code: string, context?: Record<string, unknown>) =>
+    request<{ dismissed: boolean }>('/data-issues/dismiss', {
+      method: 'POST',
+      body: JSON.stringify({ shipmentId, code, context }),
+    }),
 
   getDepot: () => request<Depot>('/depot'),
 
