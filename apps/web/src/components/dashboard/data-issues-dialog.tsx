@@ -1,13 +1,16 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, AlertCircle, ArrowRight, FileWarning } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { AlertTriangle, AlertCircle, ArrowRight, FileWarning, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Pill } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { api, ApiClientError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDispatch } from '@/state/dispatch-store';
 import { LinkifyShipments } from './linkify-shipments';
+import type { DataIssue } from '@oway/shared';
 
 const ICONS = {
   MISSING_ADDRESS: AlertCircle,
@@ -83,6 +86,7 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
                           field: {issue.field}
                         </div>
                       )}
+                      <QuickActions issue={issue} jumpTo={jumpTo} onClose={() => onOpenChange(false)} />
                     </div>
                     <button
                       type="button"
@@ -100,5 +104,88 @@ export function DataIssuesDialog({ open, onOpenChange }: { open: boolean; onOpen
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Targeted action buttons per issue type. The right action depends on the
+ * code: for DUPLICATE_OF, jump to the original or cancel this duplicate.
+ * For unfixable blocking issues (missing required fields, oversized), offer
+ * a one-click cancel since the shipment can't be assigned otherwise.
+ */
+function QuickActions({
+  issue,
+  jumpTo,
+  onClose,
+}: {
+  issue: DataIssue & { shipmentId: string };
+  jumpTo: (id: string) => void;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.overrideStatus(issue.shipmentId, 'CANCELLED'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['data-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['route'] });
+    },
+    onError: (e) => setError(e instanceof ApiClientError ? e.body.error.message : String(e)),
+  });
+
+  const duplicateOfId = (issue.context?.duplicateOf as string | undefined) ?? null;
+
+  const buttons: React.ReactNode[] = [];
+
+  if (issue.code === 'DUPLICATE_OF' && duplicateOfId) {
+    buttons.push(
+      <Button key="orig" variant="secondary" size="sm" onClick={() => { onClose(); jumpTo(duplicateOfId); }}>
+        View original ({duplicateOfId})
+      </Button>,
+    );
+    buttons.push(
+      <Button key="cancel" variant="danger-outline" size="sm" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+        {cancelMutation.isPending && <Loader2 size={11} className="animate-spin" />}
+        Cancel this duplicate
+      </Button>,
+    );
+  } else if (issue.code === 'MISSING_ADDRESS' || issue.code === 'INVALID_ZIP' || issue.code === 'UNGEOCODABLE') {
+    buttons.push(
+      <Button key="edit" variant="secondary" size="sm" onClick={() => jumpTo(issue.shipmentId)}>
+        Open to edit address
+      </Button>,
+    );
+    buttons.push(
+      <Button key="cancel" variant="danger-outline" size="sm" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+        {cancelMutation.isPending && <Loader2 size={11} className="animate-spin" />}
+        Cancel shipment
+      </Button>,
+    );
+  } else if (issue.code === 'ZERO_PALLETS' || issue.code === 'ZERO_WEIGHT' || issue.code === 'OVERSIZED' || issue.code === 'MISSING_DESCRIPTION') {
+    buttons.push(
+      <Button key="edit" variant="secondary" size="sm" onClick={() => jumpTo(issue.shipmentId)}>
+        Open to edit
+      </Button>,
+    );
+    if (issue.severity === 'blocking') {
+      buttons.push(
+        <Button key="cancel" variant="danger-outline" size="sm" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+          {cancelMutation.isPending && <Loader2 size={11} className="animate-spin" />}
+          Cancel shipment
+        </Button>,
+      );
+    }
+  }
+
+  if (buttons.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {buttons}
+      {error && <span className="text-[11px] text-red-600 ml-1">{error}</span>}
+    </div>
   );
 }
