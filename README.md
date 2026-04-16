@@ -178,7 +178,12 @@ The `notes` field on individual addresses (SHP007, SHP010, SHP034) carries drive
 
 ### Concurrency
 
-Assignment uses a Prisma interactive transaction so the read-validate-write sequence is atomic within one request. Under SQLite (the default), all writes are globally serialized, so concurrent assignments can't race past capacity. Under Postgres, full safety would also want `SELECT ... FOR UPDATE` on the vehicle row (or optimistic concurrency with a version column). The shape of the fix is one line in the transaction; the contract of the service doesn't change. Called out here so it's not a surprise in the follow-up.
+Assignment uses a Prisma interactive transaction so the read-validate-write sequence is atomic. Two concurrent ops users assigning to the same vehicle can't race past capacity:
+
+- **SQLite** (default): all writes are globally serialized — the second transaction blocks until the first commits, then reads the updated load.
+- **Postgres**: the transaction issues `SELECT id FROM "Vehicle" WHERE id = $1 FOR UPDATE` before reading capacity, acquiring an exclusive row lock. The second request blocks on the lock until the first commits, then reads the correct post-assignment load.
+
+The provider is detected at startup via `DATABASE_URL` (file: = SQLite, else Postgres). No code change needed when switching providers — the lock is conditional.
 
 ### Why not OR-Tools / off-the-shelf solvers
 

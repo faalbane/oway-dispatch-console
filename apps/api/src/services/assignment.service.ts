@@ -30,6 +30,8 @@ import { validateCapacity } from '../domain/capacity.js';
 import { isBlocking } from '../domain/data-quality.js';
 import { deserializeShipment } from '../lib/serialize.js';
 
+const IS_POSTGRES = !(process.env.DATABASE_URL ?? '').startsWith('file:');
+
 interface AssignmentResult {
   shipments: Shipment[];
   accessorialWarnings: Array<{ shipmentId: string; missing: string[] }>;
@@ -37,6 +39,16 @@ interface AssignmentResult {
 
 export async function assignShipments(vehicleId: string, shipmentIds: string[]): Promise<AssignmentResult> {
   return prisma.$transaction(async (tx) => {
+    // On Postgres, acquire an exclusive row lock on the vehicle before reading
+    // its current load. This prevents two concurrent assignment requests from
+    // both reading the same capacity, both passing validation, and both
+    // committing — which would race the truck past its weight/pallet limit.
+    // On SQLite, the interactive transaction already serializes all writes
+    // globally, so no explicit lock is needed.
+    if (IS_POSTGRES) {
+      await tx.$queryRaw`SELECT id FROM "Vehicle" WHERE id = ${vehicleId} FOR UPDATE`;
+    }
+
     const vehicle = await tx.vehicle.findUnique({
       where: { id: vehicleId },
       include: { shipments: true },
