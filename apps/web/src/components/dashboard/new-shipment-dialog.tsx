@@ -423,8 +423,8 @@ function PlacesAutocomplete({
                 activeIndex === i ? 'bg-indigo-50' : 'hover:bg-surface-subtle'
               }`}
             >
-              <div className="text-xs font-medium text-ink truncate">{renderSuggestion(s).main}</div>
-              <div className="text-[11px] text-ink-subtle truncate">{renderSuggestion(s).secondary}</div>
+              <div className="text-xs font-medium text-ink leading-snug">{renderSuggestion(s).main}</div>
+              <div className="text-[11px] text-ink-subtle leading-snug mt-0.5">{renderSuggestion(s).secondary}</div>
             </button>
           ))}
         </div>

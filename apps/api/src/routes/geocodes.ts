@@ -54,7 +54,19 @@ export default async function geocodeRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
         },
-        body: JSON.stringify({ input: q, includedRegionCodes: ['us'] }),
+        body: JSON.stringify({
+          input: q,
+          includedRegionCodes: ['us'],
+          // Bias toward greater LA / Southern California — this is an LA
+          // dispatch console. Results outside the area still appear (it's a
+          // bias, not a strict filter) but get ranked lower.
+          locationBias: {
+            circle: {
+              center: { latitude: 34.0522, longitude: -118.2437 },
+              radius: 80000, // ~50 mi
+            },
+          },
+        }),
         signal: AbortSignal.timeout(5_000),
       });
       if (!res.ok) return { suggestions: [] };
